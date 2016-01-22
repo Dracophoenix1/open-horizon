@@ -8,24 +8,46 @@
 
 /* Begin PBXBuildFile section */
 		F503E4DB19048C6700C3590A /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F503E4DA19048C6700C3590A /* Cocoa.framework */; };
-		F503E51519048CC100C3590A /* fhm_mesh.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F503E50E19048CC100C3590A /* fhm_mesh.cpp */; };
-		F503E51619048CC100C3590A /* open_horizon.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F503E50F19048CC100C3590A /* open_horizon.cpp */; };
-		F503E51719048CC100C3590A /* shared.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F503E51019048CC100C3590A /* shared.cpp */; };
-		F503E51819048CC100C3590A /* plane_params.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F503E51319048CC100C3590A /* plane_params.cpp */; };
 		F503E52419048E2D00C3590A /* libglfw3.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F503E52319048E2D00C3590A /* libglfw3.a */; };
 		F503E52619048E5000C3590A /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F503E52519048E5000C3590A /* OpenGL.framework */; };
 		F503E52919048E7300C3590A /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F503E52819048E7300C3590A /* IOKit.framework */; };
-		F503E52C1904907200C3590A /* qdf.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F503E52A1904907200C3590A /* qdf.cpp */; };
-		F506E39719085012002CF23C /* fhm.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F506E39619085012002CF23C /* fhm.cpp */; };
-		F57342121ABF3F3600468FD5 /* clouds.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F57342101ABF3F3600468FD5 /* clouds.cpp */; };
-		F57342171AC176E900468FD5 /* location_params.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F57342151AC176E900468FD5 /* location_params.cpp */; };
+		F50DADAC1C3047D5000DD3EA /* hangar.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F50DADAA1C3047D5000DD3EA /* hangar.cpp */; };
+		F53304C81B09DEC300D8C3C7 /* menu.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F53304C61B09DEC300D8C3C7 /* menu.cpp */; };
+		F5696AAA1B1136B100C7BFC9 /* joystick.xml in CopyFiles */ = {isa = PBXBuildFile; fileRef = F5696AA11B10E3F800C7BFC9 /* joystick.xml */; };
+		F578323E1AFBE859005FE829 /* ui.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F578323C1AFBE859005FE829 /* ui.cpp */; };
+		F57832401AFC20B7005FE829 /* weapons.xml in CopyFiles */ = {isa = PBXBuildFile; fileRef = F578323F1AFC20B1005FE829 /* weapons.xml */; };
 		F595E9D71AB2402D0006F8C7 /* libnya_engine.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F503E51F19048D4A00C3590A /* libnya_engine.a */; };
-		F5BF995B190A4462005A8AF5 /* fhm_location.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F5BF9959190A4462005A8AF5 /* fhm_location.cpp */; };
+		F59AB5921AFA389500137527 /* game.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F59AB5901AFA389500137527 /* game.cpp */; };
+		F59AB5A71AFA4F1800137527 /* scene.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F59AB5981AFA4F1800137527 /* scene.cpp */; };
+		F59AB5A81AFA4F1800137527 /* fhm_location.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F59AB5991AFA4F1800137527 /* fhm_location.cpp */; };
+		F59AB5A91AFA4F1800137527 /* fhm_mesh.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F59AB59A1AFA4F1800137527 /* fhm_mesh.cpp */; };
+		F59AB5AA1AFA4F1800137527 /* location_params.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F59AB59C1AFA4F1800137527 /* location_params.cpp */; };
+		F59AB5AB1AFA4F1800137527 /* model.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F59AB59D1AFA4F1800137527 /* model.cpp */; };
+		F59AB5AC1AFA4F1800137527 /* clouds.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F59AB59E1AFA4F1800137527 /* clouds.cpp */; };
+		F59AB5AD1AFA4F1800137527 /* shared.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F59AB5A01AFA4F1800137527 /* shared.cpp */; };
+		F59AB5AE1AFA4F1800137527 /* location.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F59AB5A31AFA4F1800137527 /* location.cpp */; };
+		F59AB5B11AFA4FEC00137527 /* world.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F59AB5AF1AFA4FEC00137527 /* world.cpp */; };
+		F59AB5B41AFA799B00137527 /* lens_flare.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F59AB5B21AFA799B00137527 /* lens_flare.cpp */; };
+		F59AB5B71AFA7D1600137527 /* plane_camera.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F59AB5B51AFA7D1600137527 /* plane_camera.cpp */; };
+		F59AB5BA1AFAA0C000137527 /* aircraft.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F59AB5B91AFAA0C000137527 /* aircraft.cpp */; };
+		F5A2A2D71AFE3258009765C1 /* missile_trail.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F5A2A2D61AFE3258009765C1 /* missile_trail.cpp */; };
+		F5A2A2DC1AFE86E4009765C1 /* hud.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F5A2A2DA1AFE86E4009765C1 /* hud.cpp */; };
+		F5A2A2E41B05466C009765C1 /* ai.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F5A2A2E01B05466C009765C1 /* ai.cpp */; };
+		F5A2A2E51B05466C009765C1 /* deathmatch.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F5A2A2E11B05466C009765C1 /* deathmatch.cpp */; };
+		F5A2A2E61B05466C009765C1 /* free_flight.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F5A2A2E21B05466C009765C1 /* free_flight.cpp */; };
+		F5A2A2E71B05466C009765C1 /* team_deathmatch.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F5A2A2E31B05466C009765C1 /* team_deathmatch.cpp */; };
+		F5C3B6FE1B2C809000479524 /* particles.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F5A334691B23688F00F3C9FC /* particles.cpp */; };
+		F5C6D3861AF9694D006FB7E6 /* demo.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F5C6D3851AF9694D006FB7E6 /* demo.cpp */; };
+		F5C6D3911AF969A5006FB7E6 /* dpl.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F5C6D3881AF969A5006FB7E6 /* dpl.cpp */; };
+		F5C6D3921AF969A5006FB7E6 /* fhm.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F5C6D38C1AF969A5006FB7E6 /* fhm.cpp */; };
+		F5C6D3931AF969A5006FB7E6 /* qdf.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F5C6D38E1AF969A5006FB7E6 /* qdf.cpp */; };
+		F5C6D3991AF969BE006FB7E6 /* physics.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F5C6D3951AF969BE006FB7E6 /* physics.cpp */; };
+		F5C6D39A1AF969BE006FB7E6 /* plane_params.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F5C6D3971AF969BE006FB7E6 /* plane_params.cpp */; };
+		F5C6D39E1AF96A18006FB7E6 /* DATA.PAC.xml in CopyFiles */ = {isa = PBXBuildFile; fileRef = F5C6D39B1AF96A08006FB7E6 /* DATA.PAC.xml */; };
+		F5C6D39F1AF96A18006FB7E6 /* postprocess.txt in CopyFiles */ = {isa = PBXBuildFile; fileRef = F5C6D39C1AF96A08006FB7E6 /* postprocess.txt */; };
+		F5C6D3A01AF96A18006FB7E6 /* shaders in CopyFiles */ = {isa = PBXBuildFile; fileRef = F5C6D39D1AF96A08006FB7E6 /* shaders */; };
 		F5D796A219B3432C006269F0 /* pugixml.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F5D7969F19B3432C006269F0 /* pugixml.cpp */; };
-		F5D796A619B35471006269F0 /* aircraft.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F5D796A419B35471006269F0 /* aircraft.cpp */; };
 		F5DFAD8B19BB248C00786736 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F5DFAD8A19BB248C00786736 /* libz.dylib */; };
-		F5DFAD9019BCA1EA00786736 /* location.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F5DFAD8E19BCA1EA00786736 /* location.cpp */; };
-		F5E89E591AACB8D200B72EAA /* dpl.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F5E89E581AACB8D200B72EAA /* dpl.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -45,6 +67,23 @@
 		};
 /* End PBXContainerItemProxy section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		F5DAA8C81AD7CE3300C2C633 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 16;
+			files = (
+				F5696AAA1B1136B100C7BFC9 /* joystick.xml in CopyFiles */,
+				F57832401AFC20B7005FE829 /* weapons.xml in CopyFiles */,
+				F5C6D39E1AF96A18006FB7E6 /* DATA.PAC.xml in CopyFiles */,
+				F5C6D39F1AF96A18006FB7E6 /* postprocess.txt in CopyFiles */,
+				F5C6D3A01AF96A18006FB7E6 /* shaders in CopyFiles */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		F503E4D719048C6700C3590A /* open-horizon-demo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "open-horizon-demo.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		F503E4DA19048C6700C3590A /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
@@ -53,40 +92,83 @@
 		F503E4DF19048C6700C3590A /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
 		F503E4E219048C6700C3590A /* open-horizon-demo-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "open-horizon-demo-Info.plist"; sourceTree = "<group>"; };
 		F503E4F919048C6700C3590A /* XCTest.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = XCTest.framework; path = Library/Frameworks/XCTest.framework; sourceTree = DEVELOPER_DIR; };
-		F503E50E19048CC100C3590A /* fhm_mesh.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = fhm_mesh.cpp; sourceTree = "<group>"; };
-		F503E50F19048CC100C3590A /* open_horizon.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = open_horizon.cpp; sourceTree = "<group>"; };
-		F503E51019048CC100C3590A /* shared.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = shared.cpp; sourceTree = "<group>"; };
-		F503E51119048CC100C3590A /* fhm_mesh.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = fhm_mesh.h; sourceTree = "<group>"; };
-		F503E51219048CC100C3590A /* shared.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = shared.h; sourceTree = "<group>"; };
-		F503E51319048CC100C3590A /* plane_params.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = plane_params.cpp; sourceTree = "<group>"; };
-		F503E51419048CC100C3590A /* plane_params.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = plane_params.h; sourceTree = "<group>"; };
 		F503E51919048D4A00C3590A /* nya_engine.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = nya_engine.xcodeproj; path = "../deps/nya-engine/build/xcode/nya_engine.xcodeproj"; sourceTree = "<group>"; };
-		F503E52319048E2D00C3590A /* libglfw3.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libglfw3.a; path = ../deps/glfw/lib/libglfw3.a; sourceTree = "<group>"; };
+		F503E52319048E2D00C3590A /* libglfw3.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libglfw3.a; path = "../deps/glfw-bin/lib/libglfw3.a"; sourceTree = "<group>"; };
 		F503E52519048E5000C3590A /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = System/Library/Frameworks/OpenGL.framework; sourceTree = SDKROOT; };
 		F503E52819048E7300C3590A /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = System/Library/Frameworks/IOKit.framework; sourceTree = SDKROOT; };
-		F503E52A1904907200C3590A /* qdf.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = qdf.cpp; path = ../qdf.cpp; sourceTree = "<group>"; };
-		F503E52B1904907200C3590A /* qdf.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = qdf.h; path = ../qdf.h; sourceTree = "<group>"; };
-		F503E52E1904913500C3590A /* qdf_provider.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qdf_provider.h; sourceTree = "<group>"; };
-		F506E39319084E01002CF23C /* fhm.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = fhm.h; path = ../fhm.h; sourceTree = "<group>"; };
-		F506E39619085012002CF23C /* fhm.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = fhm.cpp; path = ../fhm.cpp; sourceTree = "<group>"; };
-		F56CCB0419B3D955000D9163 /* xml.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = xml.h; sourceTree = "<group>"; };
-		F57342101ABF3F3600468FD5 /* clouds.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = clouds.cpp; sourceTree = "<group>"; };
-		F57342111ABF3F3600468FD5 /* clouds.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = clouds.h; sourceTree = "<group>"; };
-		F57342151AC176E900468FD5 /* location_params.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = location_params.cpp; sourceTree = "<group>"; };
-		F57342161AC176E900468FD5 /* location_params.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = location_params.h; sourceTree = "<group>"; };
-		F595E9D41AB22AAF0006F8C7 /* dpl_keys.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = dpl_keys.h; path = ../dpl_keys.h; sourceTree = "<group>"; };
-		F5A0B05E1A4A30060074854E /* dpl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = dpl.h; path = ../dpl.h; sourceTree = "<group>"; };
-		F5BF9959190A4462005A8AF5 /* fhm_location.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = fhm_location.cpp; sourceTree = "<group>"; };
-		F5BF995A190A4462005A8AF5 /* fhm_location.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = fhm_location.h; sourceTree = "<group>"; };
+		F50DADAA1C3047D5000DD3EA /* hangar.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = hangar.cpp; path = ../game/hangar.cpp; sourceTree = "<group>"; };
+		F50DADAB1C3047D5000DD3EA /* hangar.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = hangar.h; path = ../game/hangar.h; sourceTree = "<group>"; };
+		F53304C61B09DEC300D8C3C7 /* menu.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = menu.cpp; path = ../gui/menu.cpp; sourceTree = "<group>"; };
+		F53304C71B09DEC300D8C3C7 /* menu.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = menu.h; path = ../gui/menu.h; sourceTree = "<group>"; };
+		F561C5FA1AFD24E900D8DD14 /* half.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = half.h; path = ../util/half.h; sourceTree = "<group>"; };
+		F5696AA11B10E3F800C7BFC9 /* joystick.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = joystick.xml; path = ../resources/joystick.xml; sourceTree = "<group>"; };
+		F578323C1AFBE859005FE829 /* ui.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ui.cpp; path = ../gui/ui.cpp; sourceTree = "<group>"; };
+		F578323D1AFBE859005FE829 /* ui.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ui.h; path = ../gui/ui.h; sourceTree = "<group>"; };
+		F578323F1AFC20B1005FE829 /* weapons.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = weapons.xml; path = ../resources/weapons.xml; sourceTree = "<group>"; };
+		F59AB5901AFA389500137527 /* game.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = game.cpp; path = ../game/game.cpp; sourceTree = "<group>"; };
+		F59AB5911AFA389500137527 /* game.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = game.h; path = ../game/game.h; sourceTree = "<group>"; };
+		F59AB5971AFA4F1800137527 /* scene.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = scene.h; path = ../renderer/scene.h; sourceTree = "<group>"; };
+		F59AB5981AFA4F1800137527 /* scene.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = scene.cpp; path = ../renderer/scene.cpp; sourceTree = "<group>"; };
+		F59AB5991AFA4F1800137527 /* fhm_location.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = fhm_location.cpp; path = ../renderer/fhm_location.cpp; sourceTree = "<group>"; };
+		F59AB59A1AFA4F1800137527 /* fhm_mesh.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = fhm_mesh.cpp; path = ../renderer/fhm_mesh.cpp; sourceTree = "<group>"; };
+		F59AB59B1AFA4F1800137527 /* location_params.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = location_params.h; path = ../renderer/location_params.h; sourceTree = "<group>"; };
+		F59AB59C1AFA4F1800137527 /* location_params.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = location_params.cpp; path = ../renderer/location_params.cpp; sourceTree = "<group>"; };
+		F59AB59D1AFA4F1800137527 /* model.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = model.cpp; path = ../renderer/model.cpp; sourceTree = "<group>"; };
+		F59AB59E1AFA4F1800137527 /* clouds.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = clouds.cpp; path = ../renderer/clouds.cpp; sourceTree = "<group>"; };
+		F59AB59F1AFA4F1800137527 /* shared.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = shared.h; path = ../renderer/shared.h; sourceTree = "<group>"; };
+		F59AB5A01AFA4F1800137527 /* shared.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = shared.cpp; path = ../renderer/shared.cpp; sourceTree = "<group>"; };
+		F59AB5A11AFA4F1800137527 /* model.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = model.h; path = ../renderer/model.h; sourceTree = "<group>"; };
+		F59AB5A21AFA4F1800137527 /* fhm_mesh.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = fhm_mesh.h; path = ../renderer/fhm_mesh.h; sourceTree = "<group>"; };
+		F59AB5A31AFA4F1800137527 /* location.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = location.cpp; path = ../renderer/location.cpp; sourceTree = "<group>"; };
+		F59AB5A41AFA4F1800137527 /* location.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = location.h; path = ../renderer/location.h; sourceTree = "<group>"; };
+		F59AB5A51AFA4F1800137527 /* fhm_location.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = fhm_location.h; path = ../renderer/fhm_location.h; sourceTree = "<group>"; };
+		F59AB5A61AFA4F1800137527 /* clouds.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = clouds.h; path = ../renderer/clouds.h; sourceTree = "<group>"; };
+		F59AB5AF1AFA4FEC00137527 /* world.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = world.cpp; path = ../renderer/world.cpp; sourceTree = "<group>"; };
+		F59AB5B01AFA4FEC00137527 /* world.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = world.h; path = ../renderer/world.h; sourceTree = "<group>"; };
+		F59AB5B21AFA799B00137527 /* lens_flare.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = lens_flare.cpp; path = ../renderer/lens_flare.cpp; sourceTree = "<group>"; };
+		F59AB5B31AFA799B00137527 /* lens_flare.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = lens_flare.h; path = ../renderer/lens_flare.h; sourceTree = "<group>"; };
+		F59AB5B51AFA7D1600137527 /* plane_camera.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = plane_camera.cpp; path = ../renderer/plane_camera.cpp; sourceTree = "<group>"; };
+		F59AB5B61AFA7D1600137527 /* plane_camera.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = plane_camera.h; path = ../renderer/plane_camera.h; sourceTree = "<group>"; };
+		F59AB5B81AFAA0C000137527 /* aircraft.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = aircraft.h; path = ../renderer/aircraft.h; sourceTree = "<group>"; };
+		F59AB5B91AFAA0C000137527 /* aircraft.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = aircraft.cpp; path = ../renderer/aircraft.cpp; sourceTree = "<group>"; };
+		F5A2A2D51AFE3258009765C1 /* missile_trail.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = missile_trail.h; path = ../renderer/missile_trail.h; sourceTree = "<group>"; };
+		F5A2A2D61AFE3258009765C1 /* missile_trail.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = missile_trail.cpp; path = ../renderer/missile_trail.cpp; sourceTree = "<group>"; };
+		F5A2A2DA1AFE86E4009765C1 /* hud.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = hud.cpp; path = ../gui/hud.cpp; sourceTree = "<group>"; };
+		F5A2A2DB1AFE86E4009765C1 /* hud.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = hud.h; path = ../gui/hud.h; sourceTree = "<group>"; };
+		F5A2A2DD1B05466C009765C1 /* ai.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ai.h; path = ../game/ai.h; sourceTree = "<group>"; };
+		F5A2A2DE1B05466C009765C1 /* free_flight.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = free_flight.h; path = ../game/free_flight.h; sourceTree = "<group>"; };
+		F5A2A2DF1B05466C009765C1 /* team_deathmatch.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = team_deathmatch.h; path = ../game/team_deathmatch.h; sourceTree = "<group>"; };
+		F5A2A2E01B05466C009765C1 /* ai.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ai.cpp; path = ../game/ai.cpp; sourceTree = "<group>"; };
+		F5A2A2E11B05466C009765C1 /* deathmatch.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = deathmatch.cpp; path = ../game/deathmatch.cpp; sourceTree = "<group>"; };
+		F5A2A2E21B05466C009765C1 /* free_flight.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = free_flight.cpp; path = ../game/free_flight.cpp; sourceTree = "<group>"; };
+		F5A2A2E31B05466C009765C1 /* team_deathmatch.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = team_deathmatch.cpp; path = ../game/team_deathmatch.cpp; sourceTree = "<group>"; };
+		F5A2A2E81B0546EF009765C1 /* deathmatch.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = deathmatch.h; path = ../game/deathmatch.h; sourceTree = "<group>"; };
+		F5A334691B23688F00F3C9FC /* particles.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = particles.cpp; path = ../renderer/particles.cpp; sourceTree = "<group>"; };
+		F5A3346A1B23688F00F3C9FC /* particles.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = particles.h; path = ../renderer/particles.h; sourceTree = "<group>"; };
+		F5C6D37C1AF968E7006FB7E6 /* params.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = params.h; path = ../util/params.h; sourceTree = "<group>"; };
+		F5C6D37D1AF968E7006FB7E6 /* xml.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = xml.h; path = ../util/xml.h; sourceTree = "<group>"; };
+		F5C6D3851AF9694D006FB7E6 /* demo.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = demo.cpp; sourceTree = SOURCE_ROOT; };
+		F5C6D3881AF969A5006FB7E6 /* dpl.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = dpl.cpp; sourceTree = "<group>"; };
+		F5C6D3891AF969A5006FB7E6 /* dpl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = dpl.h; sourceTree = "<group>"; };
+		F5C6D38A1AF969A5006FB7E6 /* dpl_keys.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = dpl_keys.h; sourceTree = "<group>"; };
+		F5C6D38B1AF969A5006FB7E6 /* dpl_provider.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = dpl_provider.h; sourceTree = "<group>"; };
+		F5C6D38C1AF969A5006FB7E6 /* fhm.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = fhm.cpp; sourceTree = "<group>"; };
+		F5C6D38D1AF969A5006FB7E6 /* fhm.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = fhm.h; sourceTree = "<group>"; };
+		F5C6D38E1AF969A5006FB7E6 /* qdf.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qdf.cpp; sourceTree = "<group>"; };
+		F5C6D38F1AF969A5006FB7E6 /* qdf.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qdf.h; sourceTree = "<group>"; };
+		F5C6D3901AF969A5006FB7E6 /* qdf_provider.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qdf_provider.h; sourceTree = "<group>"; };
+		F5C6D3951AF969BE006FB7E6 /* physics.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = physics.cpp; sourceTree = "<group>"; };
+		F5C6D3961AF969BE006FB7E6 /* physics.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = physics.h; sourceTree = "<group>"; };
+		F5C6D3971AF969BE006FB7E6 /* plane_params.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = plane_params.cpp; sourceTree = "<group>"; };
+		F5C6D3981AF969BE006FB7E6 /* plane_params.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = plane_params.h; sourceTree = "<group>"; };
+		F5C6D39B1AF96A08006FB7E6 /* DATA.PAC.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = DATA.PAC.xml; path = ../resources/DATA.PAC.xml; sourceTree = "<group>"; };
+		F5C6D39C1AF96A08006FB7E6 /* postprocess.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = postprocess.txt; path = ../resources/postprocess.txt; sourceTree = "<group>"; };
+		F5C6D39D1AF96A08006FB7E6 /* shaders */ = {isa = PBXFileReference; lastKnownFileType = folder; name = shaders; path = ../resources/shaders; sourceTree = "<group>"; };
+		F5C6D3A11AF96B4B006FB7E6 /* util.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = util.h; path = ../util/util.h; sourceTree = "<group>"; };
 		F5D7969F19B3432C006269F0 /* pugixml.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = pugixml.cpp; path = "../deps/pugixml-1.4/src/pugixml.cpp"; sourceTree = "<group>"; };
 		F5D796A019B3432C006269F0 /* pugiconfig.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = pugiconfig.hpp; path = "../deps/pugixml-1.4/src/pugiconfig.hpp"; sourceTree = "<group>"; };
 		F5D796A119B3432C006269F0 /* pugixml.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = pugixml.hpp; path = "../deps/pugixml-1.4/src/pugixml.hpp"; sourceTree = "<group>"; };
-		F5D796A419B35471006269F0 /* aircraft.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = aircraft.cpp; sourceTree = "<group>"; };
-		F5D796A519B35471006269F0 /* aircraft.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = aircraft.h; sourceTree = "<group>"; };
 		F5DFAD8A19BB248C00786736 /* libz.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libz.dylib; path = usr/lib/libz.dylib; sourceTree = SDKROOT; };
-		F5DFAD8E19BCA1EA00786736 /* location.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = location.cpp; sourceTree = "<group>"; };
-		F5DFAD8F19BCA1EA00786736 /* location.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = location.h; sourceTree = "<group>"; };
-		F5E89E581AACB8D200B72EAA /* dpl.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = dpl.cpp; path = ../dpl.cpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -109,32 +191,14 @@
 		F503E4CE19048C6700C3590A = {
 			isa = PBXGroup;
 			children = (
-				F5D796A419B35471006269F0 /* aircraft.cpp */,
-				F5D796A519B35471006269F0 /* aircraft.h */,
-				F57342101ABF3F3600468FD5 /* clouds.cpp */,
-				F57342111ABF3F3600468FD5 /* clouds.h */,
-				F5E89E581AACB8D200B72EAA /* dpl.cpp */,
-				F5A0B05E1A4A30060074854E /* dpl.h */,
-				F595E9D41AB22AAF0006F8C7 /* dpl_keys.h */,
-				F506E39619085012002CF23C /* fhm.cpp */,
-				F506E39319084E01002CF23C /* fhm.h */,
-				F5BF9959190A4462005A8AF5 /* fhm_location.cpp */,
-				F5BF995A190A4462005A8AF5 /* fhm_location.h */,
-				F503E50E19048CC100C3590A /* fhm_mesh.cpp */,
-				F503E51119048CC100C3590A /* fhm_mesh.h */,
-				F5DFAD8E19BCA1EA00786736 /* location.cpp */,
-				F5DFAD8F19BCA1EA00786736 /* location.h */,
-				F57342151AC176E900468FD5 /* location_params.cpp */,
-				F57342161AC176E900468FD5 /* location_params.h */,
-				F503E50F19048CC100C3590A /* open_horizon.cpp */,
-				F503E51319048CC100C3590A /* plane_params.cpp */,
-				F503E51419048CC100C3590A /* plane_params.h */,
-				F503E52A1904907200C3590A /* qdf.cpp */,
-				F503E52B1904907200C3590A /* qdf.h */,
-				F503E52E1904913500C3590A /* qdf_provider.h */,
-				F503E51019048CC100C3590A /* shared.cpp */,
-				F503E51219048CC100C3590A /* shared.h */,
-				F56CCB0419B3D955000D9163 /* xml.h */,
+				F5C6D3851AF9694D006FB7E6 /* demo.cpp */,
+				F5C6D3871AF969A5006FB7E6 /* containers */,
+				F59AB58D1AFA387500137527 /* game */,
+				F57832381AFBE804005FE829 /* gui */,
+				F5C6D3941AF969BE006FB7E6 /* phys */,
+				F5DAA8CB1AD7CE5000C2C633 /* resources */,
+				F5C6D3641AF9689D006FB7E6 /* renderer */,
+				F5C6D37A1AF968C5006FB7E6 /* util */,
 				F503E4E019048C6700C3590A /* open-horizon-demo */,
 				F5D796A319B34350006269F0 /* deps */,
 				F503E4D919048C6700C3590A /* Frameworks */,
@@ -199,6 +263,113 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		F57832381AFBE804005FE829 /* gui */ = {
+			isa = PBXGroup;
+			children = (
+				F5A2A2DA1AFE86E4009765C1 /* hud.cpp */,
+				F5A2A2DB1AFE86E4009765C1 /* hud.h */,
+				F53304C61B09DEC300D8C3C7 /* menu.cpp */,
+				F53304C71B09DEC300D8C3C7 /* menu.h */,
+				F578323C1AFBE859005FE829 /* ui.cpp */,
+				F578323D1AFBE859005FE829 /* ui.h */,
+			);
+			name = gui;
+			sourceTree = "<group>";
+		};
+		F59AB58D1AFA387500137527 /* game */ = {
+			isa = PBXGroup;
+			children = (
+				F5A2A2E01B05466C009765C1 /* ai.cpp */,
+				F5A2A2DD1B05466C009765C1 /* ai.h */,
+				F5A2A2E11B05466C009765C1 /* deathmatch.cpp */,
+				F5A2A2E81B0546EF009765C1 /* deathmatch.h */,
+				F5A2A2E21B05466C009765C1 /* free_flight.cpp */,
+				F5A2A2DE1B05466C009765C1 /* free_flight.h */,
+				F59AB5901AFA389500137527 /* game.cpp */,
+				F59AB5911AFA389500137527 /* game.h */,
+				F50DADAA1C3047D5000DD3EA /* hangar.cpp */,
+				F50DADAB1C3047D5000DD3EA /* hangar.h */,
+				F5A2A2E31B05466C009765C1 /* team_deathmatch.cpp */,
+				F5A2A2DF1B05466C009765C1 /* team_deathmatch.h */,
+			);
+			name = game;
+			sourceTree = "<group>";
+		};
+		F5C6D3641AF9689D006FB7E6 /* renderer */ = {
+			isa = PBXGroup;
+			children = (
+				F59AB5B91AFAA0C000137527 /* aircraft.cpp */,
+				F59AB5B81AFAA0C000137527 /* aircraft.h */,
+				F59AB59E1AFA4F1800137527 /* clouds.cpp */,
+				F59AB5A61AFA4F1800137527 /* clouds.h */,
+				F59AB5991AFA4F1800137527 /* fhm_location.cpp */,
+				F59AB5A51AFA4F1800137527 /* fhm_location.h */,
+				F59AB59A1AFA4F1800137527 /* fhm_mesh.cpp */,
+				F59AB5A21AFA4F1800137527 /* fhm_mesh.h */,
+				F59AB5B21AFA799B00137527 /* lens_flare.cpp */,
+				F59AB5B31AFA799B00137527 /* lens_flare.h */,
+				F59AB5A31AFA4F1800137527 /* location.cpp */,
+				F59AB5A41AFA4F1800137527 /* location.h */,
+				F59AB59C1AFA4F1800137527 /* location_params.cpp */,
+				F59AB59B1AFA4F1800137527 /* location_params.h */,
+				F5A2A2D61AFE3258009765C1 /* missile_trail.cpp */,
+				F5A2A2D51AFE3258009765C1 /* missile_trail.h */,
+				F59AB59D1AFA4F1800137527 /* model.cpp */,
+				F59AB5A11AFA4F1800137527 /* model.h */,
+				F5A334691B23688F00F3C9FC /* particles.cpp */,
+				F5A3346A1B23688F00F3C9FC /* particles.h */,
+				F59AB5B51AFA7D1600137527 /* plane_camera.cpp */,
+				F59AB5B61AFA7D1600137527 /* plane_camera.h */,
+				F59AB5981AFA4F1800137527 /* scene.cpp */,
+				F59AB5971AFA4F1800137527 /* scene.h */,
+				F59AB5A01AFA4F1800137527 /* shared.cpp */,
+				F59AB59F1AFA4F1800137527 /* shared.h */,
+				F59AB5AF1AFA4FEC00137527 /* world.cpp */,
+				F59AB5B01AFA4FEC00137527 /* world.h */,
+			);
+			name = renderer;
+			sourceTree = "<group>";
+		};
+		F5C6D37A1AF968C5006FB7E6 /* util */ = {
+			isa = PBXGroup;
+			children = (
+				F561C5FA1AFD24E900D8DD14 /* half.h */,
+				F5C6D37C1AF968E7006FB7E6 /* params.h */,
+				F5C6D3A11AF96B4B006FB7E6 /* util.h */,
+				F5C6D37D1AF968E7006FB7E6 /* xml.h */,
+			);
+			name = util;
+			sourceTree = "<group>";
+		};
+		F5C6D3871AF969A5006FB7E6 /* containers */ = {
+			isa = PBXGroup;
+			children = (
+				F5C6D3881AF969A5006FB7E6 /* dpl.cpp */,
+				F5C6D3891AF969A5006FB7E6 /* dpl.h */,
+				F5C6D38A1AF969A5006FB7E6 /* dpl_keys.h */,
+				F5C6D38B1AF969A5006FB7E6 /* dpl_provider.h */,
+				F5C6D38C1AF969A5006FB7E6 /* fhm.cpp */,
+				F5C6D38D1AF969A5006FB7E6 /* fhm.h */,
+				F5C6D38E1AF969A5006FB7E6 /* qdf.cpp */,
+				F5C6D38F1AF969A5006FB7E6 /* qdf.h */,
+				F5C6D3901AF969A5006FB7E6 /* qdf_provider.h */,
+			);
+			name = containers;
+			path = ../containers;
+			sourceTree = "<group>";
+		};
+		F5C6D3941AF969BE006FB7E6 /* phys */ = {
+			isa = PBXGroup;
+			children = (
+				F5C6D3951AF969BE006FB7E6 /* physics.cpp */,
+				F5C6D3961AF969BE006FB7E6 /* physics.h */,
+				F5C6D3971AF969BE006FB7E6 /* plane_params.cpp */,
+				F5C6D3981AF969BE006FB7E6 /* plane_params.h */,
+			);
+			name = phys;
+			path = ../phys;
+			sourceTree = "<group>";
+		};
 		F5D7969C19B342ED006269F0 /* pugixml */ = {
 			isa = PBXGroup;
 			children = (
@@ -218,6 +389,18 @@
 			name = deps;
 			sourceTree = "<group>";
 		};
+		F5DAA8CB1AD7CE5000C2C633 /* resources */ = {
+			isa = PBXGroup;
+			children = (
+				F5C6D39B1AF96A08006FB7E6 /* DATA.PAC.xml */,
+				F5696AA11B10E3F800C7BFC9 /* joystick.xml */,
+				F5C6D39C1AF96A08006FB7E6 /* postprocess.txt */,
+				F578323F1AFC20B1005FE829 /* weapons.xml */,
+				F5C6D39D1AF96A08006FB7E6 /* shaders */,
+			);
+			name = resources;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -227,7 +410,7 @@
 			buildPhases = (
 				F503E4D319048C6700C3590A /* Sources */,
 				F503E4D419048C6700C3590A /* Frameworks */,
-				F503E4D519048C6700C3590A /* Resources */,
+				F5DAA8C81AD7CE3300C2C633 /* CopyFiles */,
 			);
 			buildRules = (
 			);
@@ -287,34 +470,41 @@
 		};
 /* End PBXReferenceProxy section */
 
-/* Begin PBXResourcesBuildPhase section */
-		F503E4D519048C6700C3590A /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXResourcesBuildPhase section */
-
 /* Begin PBXSourcesBuildPhase section */
 		F503E4D319048C6700C3590A /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F503E51819048CC100C3590A /* plane_params.cpp in Sources */,
-				F57342121ABF3F3600468FD5 /* clouds.cpp in Sources */,
-				F5BF995B190A4462005A8AF5 /* fhm_location.cpp in Sources */,
+				F59AB5BA1AFAA0C000137527 /* aircraft.cpp in Sources */,
+				F5A2A2E51B05466C009765C1 /* deathmatch.cpp in Sources */,
+				F5A2A2D71AFE3258009765C1 /* missile_trail.cpp in Sources */,
+				F5A2A2E61B05466C009765C1 /* free_flight.cpp in Sources */,
+				F59AB5A81AFA4F1800137527 /* fhm_location.cpp in Sources */,
+				F5A2A2DC1AFE86E4009765C1 /* hud.cpp in Sources */,
+				F5C6D3921AF969A5006FB7E6 /* fhm.cpp in Sources */,
+				F5C6D3911AF969A5006FB7E6 /* dpl.cpp in Sources */,
+				F578323E1AFBE859005FE829 /* ui.cpp in Sources */,
+				F59AB5A91AFA4F1800137527 /* fhm_mesh.cpp in Sources */,
+				F59AB5AE1AFA4F1800137527 /* location.cpp in Sources */,
+				F5C6D3931AF969A5006FB7E6 /* qdf.cpp in Sources */,
+				F50DADAC1C3047D5000DD3EA /* hangar.cpp in Sources */,
+				F59AB5AC1AFA4F1800137527 /* clouds.cpp in Sources */,
+				F59AB5AB1AFA4F1800137527 /* model.cpp in Sources */,
+				F53304C81B09DEC300D8C3C7 /* menu.cpp in Sources */,
+				F59AB5B71AFA7D1600137527 /* plane_camera.cpp in Sources */,
+				F5C6D39A1AF969BE006FB7E6 /* plane_params.cpp in Sources */,
+				F5C6D3991AF969BE006FB7E6 /* physics.cpp in Sources */,
+				F59AB5B41AFA799B00137527 /* lens_flare.cpp in Sources */,
+				F59AB5AD1AFA4F1800137527 /* shared.cpp in Sources */,
+				F5A2A2E41B05466C009765C1 /* ai.cpp in Sources */,
+				F5C6D3861AF9694D006FB7E6 /* demo.cpp in Sources */,
+				F59AB5AA1AFA4F1800137527 /* location_params.cpp in Sources */,
+				F5A2A2E71B05466C009765C1 /* team_deathmatch.cpp in Sources */,
 				F5D796A219B3432C006269F0 /* pugixml.cpp in Sources */,
-				F503E52C1904907200C3590A /* qdf.cpp in Sources */,
-				F57342171AC176E900468FD5 /* location_params.cpp in Sources */,
-				F5DFAD9019BCA1EA00786736 /* location.cpp in Sources */,
-				F503E51519048CC100C3590A /* fhm_mesh.cpp in Sources */,
-				F5E89E591AACB8D200B72EAA /* dpl.cpp in Sources */,
-				F506E39719085012002CF23C /* fhm.cpp in Sources */,
-				F5D796A619B35471006269F0 /* aircraft.cpp in Sources */,
-				F503E51619048CC100C3590A /* open_horizon.cpp in Sources */,
-				F503E51719048CC100C3590A /* shared.cpp in Sources */,
+				F59AB5921AFA389500137527 /* game.cpp in Sources */,
+				F5C3B6FE1B2C809000479524 /* particles.cpp in Sources */,
+				F59AB5B11AFA4FEC00137527 /* world.cpp in Sources */,
+				F59AB5A71AFA4F1800137527 /* scene.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -358,7 +548,7 @@
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = macosx;
 				SYMROOT = ../bin/;
-				USER_HEADER_SEARCH_PATHS = "../deps/glfw/include/ ../deps/nya-engine/ ../deps/pugixml-1.4/src/";
+				USER_HEADER_SEARCH_PATHS = "../deps/glfw-bin/include/ ../deps/nya-engine/ ../deps/pugixml-1.4/src/ ../";
 			};
 			name = Debug;
 		};
@@ -394,7 +584,7 @@
 				OBJROOT = ../obj/;
 				SDKROOT = macosx;
 				SYMROOT = ../bin/;
-				USER_HEADER_SEARCH_PATHS = "../deps/glfw/include/ ../deps/nya-engine/ ../deps/pugixml-1.4/src/";
+				USER_HEADER_SEARCH_PATHS = "../deps/glfw-bin/include/ ../deps/nya-engine/ ../deps/pugixml-1.4/src/ ../";
 			};
 			name = Release;
 		};
@@ -403,10 +593,11 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				COMBINE_HIDPI_IMAGES = YES;
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
 				INFOPLIST_FILE = "open-horizon-demo-Info.plist";
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
-					../deps/glfw/lib,
+					"../deps/glfw-bin/lib",
 				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				WRAPPER_EXTENSION = app;
@@ -418,10 +609,11 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				COMBINE_HIDPI_IMAGES = YES;
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
 				INFOPLIST_FILE = "open-horizon-demo-Info.plist";
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
-					../deps/glfw/lib,
+					"../deps/glfw-bin/lib",
 				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				WRAPPER_EXTENSION = app;

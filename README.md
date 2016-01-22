@@ -1,4 +1,12 @@
 open-horizon
 ============
 
-![Open Horizon screenshot](http://zxstudio.org/blog/wp-content/uploads/2014/04/Screen-Shot-2014-04-15-at-4.45.21.png)
+![Open Horizon screenshot](http://zxstudio.org/blog/wp-content/uploads/2015/04/open-horizon-progress-report-01.png)
+
+[Project roadmap](https://github.com/undefined-darkness/open-horizon/wiki/Roadmap)
+
+[Blog](http://zxstudio.org/blog/author/razgriz/)
+
+[Downloads](http://zxstudio.org/blog/open-horizon-downloads/)
+
+[Build instructions](https://github.com/undefined-darkness/open-horizon/wiki/Build-instructions)

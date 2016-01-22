@@ -1,0 +1,184 @@
+@target main
+  color = main_color
+  depth = main_depth
+  depth_format=depth24
+  width = screen_width
+  height = screen_height
+
+@target fxaa
+  color = fxaa
+  width = screen_width
+  height = screen_height
+
+@target downsample4
+  color = downsample4
+  width = screen_width/4
+  height = screen_height/4
+
+@target luminance64
+  color = luminance64
+  color_format = rgb32f
+  width = 64
+  height = 64
+
+@target luminance16
+  color = luminance16
+  color_format = rgb32f
+  width = 16
+  height = 16
+
+@target luminance4
+  color = luminance4
+  color_format = rgb32f
+  width = 4
+  height = 4
+
+@target luminance1
+  color = luminance1
+  color_format = rgb32f
+  width = 1
+  height = 1
+
+@target luminance1_prev
+  color = luminance1_prev
+  color_format = rgb32f
+  init_color=1.0,1.0,1.0
+  width = 1
+  height = 1
+
+@target bright_filter
+  color = bright_filter
+  width = screen_width/4
+  height = screen_height/4
+
+@target gauss
+  color = gauss
+  width = screen_width/4
+  height = screen_height/4
+
+@target gauss2
+  color = gauss2
+  width = screen_width/8
+  height = screen_height/8
+
+@target gauss3
+  color = gauss3
+  width = screen_width/16
+  height = screen_height/16
+
+@target main2
+  color = main_color
+  width = screen_width
+  height = screen_height
+
+@target lens
+  color = lens
+  width = screen_width/2
+  height = screen_height/2
+
+@target motion_blur
+  color = motion_blur
+  width = screen_width/4
+  height = screen_height/4
+
+@target heat_blur
+  color = heat_blur
+  width = screen_width/4
+  height = screen_height/4
+
+@clear
+
+@set_target main
+@clear
+@draw_scene default = location
+@draw_scene default = objects
+@draw_scene default = aircrafts
+@draw_scene default = player
+@draw_scene default = clouds_flat
+@draw_scene default = clouds_obj
+@draw_scene default = particles
+@draw_scene default = cockpit
+
+@set_target fxaa
+@set_texture diffuse = main_color
+@set_shader shaders/fxaa.nsh
+@draw_quad
+
+@set_target downsample4
+@set_texture diffuse = fxaa
+@set_shader shaders/downsample4.nsh
+@draw_quad
+
+@set_target luminance64
+@set_texture diffuse = downsample4
+@set_shader shaders/luminance.nsh
+@draw_quad
+
+@set_target luminance16
+@set_texture diffuse = luminance64
+@set_shader shaders/downsample4.nsh
+@draw_quad
+
+@set_target luminance4
+@set_texture diffuse = luminance16
+@set_shader shaders/downsample4.nsh
+@draw_quad
+
+@set_target luminance1
+@set_texture diffuse = luminance4
+@set_texture prev = luminance1_prev
+@set_shader shaders/lum_adapt.nsh
+@draw_quad
+
+@set_target luminance1_prev
+@set_texture diffuse = luminance1
+@set_shader shaders/downsample4.nsh
+@draw_quad
+
+@set_target bright_filter
+@set_texture diffuse = downsample4
+@set_shader shaders/bright_filter.nsh
+@draw_quad
+
+@set_target gauss
+@set_texture diffuse = bright_filter
+@set_shader shaders/gauss3x3.nsh
+@draw_quad
+
+@set_target gauss2
+@set_texture diffuse = gauss
+@set_shader shaders/gauss3x3.nsh
+@draw_quad
+
+@set_target gauss3
+@set_texture diffuse = gauss2
+@set_shader shaders/gauss3x3.nsh
+@draw_quad
+
+@set_target main2
+@set_texture diffuse = fxaa
+@set_texture bloom = gauss3
+@set_texture lum = luminance1
+@set_shader shaders/bloom.nsh
+@draw_quad
+
+@set_target lens
+@clear
+@draw_scene default = flare
+
+@set_target motion_blur
+@clear
+
+@set_target heat_blur
+@clear
+
+@set_target
+@set_texture diffuse = main_color
+@set_texture lens = lens
+@set_texture motion_blur = motion_blur
+@set_texture heat_blur = heat_blur
+@set_texture curve0 = color_curve
+@set_texture curve1 = color_curve
+@set_texture curve2 = color_curve
+@set_shader shaders/post_process.nsh
+@draw_quad
