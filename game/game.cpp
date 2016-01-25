@@ -217,9 +217,10 @@ void world::set_location(const char *name)
 
 void world::update(int dt)
 {
-    m_planes.erase(std::remove_if(m_planes.begin(), m_planes.end(), [](const plane_ptr &p){ return p.use_count() <= 1; }), m_planes.end());
-    m_missiles.erase(std::remove_if(m_missiles.begin(), m_missiles.end(), [](const missile_ptr &m){ return m.use_count() <= 1 && m->time <= 0; }), m_missiles.end());
-
+    m_planes.erase(std::remove_if(m_planes.begin(), m_planes.end(), [](const plane_ptr &p)
+                                  { return p.use_count() <= 1; }), m_planes.end());
+    m_missiles.erase(std::remove_if(m_missiles.begin(), m_missiles.end(), [](const missile_ptr &m)
+                                    { return m.use_count() <= 1 && m->time <= 0; }), m_missiles.end());
     for (auto &p: m_planes)
         p->phys->controls = p->controls;
 
@@ -254,6 +255,12 @@ void world::update(int dt)
 
     for (auto &m: m_missiles)
         m->update(dt, *this);
+
+    const auto &bullets_from = m_phys_world.get_bullets();
+    auto &bullets_to = m_render_world.get_bullets();
+    bullets_to.clear();
+    for (auto &b: bullets_from)
+        bullets_to.add_bullet(b.pos, b.vel);
 
     m_render_world.update(dt);
 }
@@ -307,7 +314,8 @@ void plane::reset_state()
 
     //render->reset_state(); //ToDo
 
-    special_weapon = false;
+    render->set_special_visible(-1, true);
+
     need_fire_missile = false;
     rocket_bay_time = 0;
 
@@ -340,6 +348,8 @@ void plane::update(int dt, world &w, gui::hud &h, bool player)
 {
     const int missile_cooldown_time = 3500;
     const int special_cooldown_time = 7000;
+
+    const auto pos_fix = phys->pos - render->get_pos(); //skeleton is not updated yet
 
     render->set_pos(phys->pos);
     render->set_rot(phys->rot);
@@ -412,6 +422,8 @@ void plane::update(int dt, world &w, gui::hud &h, bool player)
             count = 6;
     }
 
+    const auto dir = phys->rot.rotate(nya_math::vec3(0.0f, 0.0f, 1.0f));
+
     if (controls.missile && controls.missile != last_controls.missile)
     {
         if (special_weapon)
@@ -432,14 +444,13 @@ void plane::update(int dt, world &w, gui::hud &h, bool player)
 
                     special_mount_cooldown.resize(render->get_special_mount_count());
 
-                    render->update(0);
                     for (int i = 0; i < count; ++i)
                     {
                         auto m = w.add_missile(special.id.c_str(), special.model.c_str());
                         special_mount_idx = ++special_mount_idx % render->get_special_mount_count();
                         special_mount_cooldown[special_mount_idx] = special_cooldown_time;
                         render->set_special_visible(special_mount_idx, false);
-                        m->phys->pos = render->get_special_mount_pos(special_mount_idx);
+                        m->phys->pos = render->get_special_mount_pos(special_mount_idx) + pos_fix;
                         m->phys->rot = render->get_special_mount_rot(special_mount_idx);
                         m->phys->vel = phys->vel;
                         m->phys->target_dir = m->phys->rot.rotate(vec3(0.0, 0.0, 1.0)); //ToDo
@@ -466,12 +477,11 @@ void plane::update(int dt, world &w, gui::hud &h, bool player)
             else if (missile_cooldown[1] <= 0)
                 missile_cooldown[1] = missile_cooldown_time;
 
-            render->update(0);
             auto m = w.add_missile(missile.id.c_str(), missile.model.c_str());
             missile_mount_idx = ++missile_mount_idx % render->get_missile_mount_count();
             missile_mount_cooldown[missile_mount_idx] = missile_cooldown_time;
             render->set_missile_visible(missile_mount_idx, false);
-            m->phys->pos = render->get_missile_mount_pos(missile_mount_idx);
+            m->phys->pos = render->get_missile_mount_pos(missile_mount_idx) + pos_fix;
             m->phys->rot = render->get_missile_mount_rot(missile_mount_idx);
             m->phys->vel = phys->vel;
 
@@ -523,6 +533,19 @@ void plane::update(int dt, world &w, gui::hud &h, bool player)
             render->set_mgun_fire(false);
     }
 
+    if (controls.mgun && render->is_mgun_ready())
+    {
+        mgun_fire_update += dt;
+        const int mgun_update_time = 300;
+        if (mgun_fire_update > mgun_update_time)
+        {
+            mgun_fire_update %= mgun_update_time;
+
+            for (int i = 0; i < render->get_mguns_count(); ++i)
+                w.spawn_bullet("MG", render->get_mgun_pos(i) + pos_fix, dir);
+        }
+    }
+
     plane_ptr me;
     for (int i = 0; i < w.get_planes_count(); ++i) //ugly
     {
@@ -551,7 +574,7 @@ void plane::update(int dt, world &w, gui::hud &h, bool player)
             if (dist < 12000.0f) //ToDo
             {
                 if (fp == targets.end())
-                    fp = targets.insert(targets.end(), {p});
+                    fp = targets.insert(targets.end(), {p, false});
 
                 if (special_weapon) //ToDo
                 {
@@ -581,8 +604,6 @@ void plane::update(int dt, world &w, gui::hud &h, bool player)
                                  || t.target_plane.lock()->hp <= 0; }), targets.end());
 
     //cockpit animations and hud
-
-    auto dir = phys->rot.rotate(nya_math::vec3(0.0f, 0.0f, 1.0f));
 
     const float aoa = acosf(nya_math::vec3::dot(nya_math::vec3::normalize(phys->vel), dir));
     render->set_aoa(aoa);

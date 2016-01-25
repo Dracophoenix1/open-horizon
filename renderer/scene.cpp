@@ -4,6 +4,7 @@
 
 #include "scene.h"
 #include "shared.h"
+#include "scene/camera.h"
 #include <algorithm>
 
 namespace renderer
@@ -283,8 +284,24 @@ void scene::draw_scene(const char *pass,const nya_scene::tags &t)
         for (auto &a: m_aircrafts)
             a->draw_fire_trail(*this);
 
-        for (auto &e: m_explosions)
-            m_particles_render.draw(e);
+        m_particles_render.draw(m_bullets);
+
+        auto cam_pos = nya_scene::get_camera().get_pos();
+        static std::vector<std::pair<unsigned int, size_t> > sorted;
+        sorted.resize(m_explosions.size());
+        for (size_t i = 0; i < sorted.size(); ++i)
+            sorted[i].first = (m_explosions[i].get_pos() - cam_pos).length_sq(), sorted[i].second = i;
+
+        std::sort(sorted.rbegin(), sorted.rend());
+
+        for (size_t i = 0; i < sorted.size(); ++i)
+            m_particles_render.draw(m_explosions[sorted[i].second]);
+    }
+    if (t.has("heat"))
+    {
+        //ToDo
+        //for (auto &e: m_explosions)
+        //    m_particles_render.draw_heat(e);
     }
     if (t.has("cockpit"))
     {

@@ -59,23 +59,8 @@ bool dpl_file::open(const char *name)
 
     m_infos.resize(header.infos_count);
 
-    struct fhm_entry
+    struct entry
     {
-        char sign[4];
-        uint32_t byte_order_20101010;
-        uint32_t flags;
-        uint32_t unknown_struct_count;
-
-        // next block zero if not arch
-        uint32_t arch_unknown;
-        uint32_t arch_unpacked_size;
-        uint32_t arch_unknown3;
-        uint32_t arch_unknown4;
-        uint32_t arch_unknown5;
-        uint32_t arch_unknown_16;
-        uint32_t arch_unknown_pot;
-        uint32_t arch_unknown_pot2;
-
         uint64_t offset;
         uint32_t size;
         uint32_t idx;
@@ -92,27 +77,31 @@ bool dpl_file::open(const char *name)
 
     for (uint32_t i = 0; i < header.infos_count; ++i)
     {
-        fhm_entry e = r.read<fhm_entry>();
+        fhm_file::fhm_header h = r.read<fhm_file::fhm_header>();
+        entry e = r.read<entry>();
 
-        assert(memcmp(e.sign, "FHM", 3) == 0);
+        assert(h.check_sign());
 
-        const bool byte_order = e.byte_order_20101010 != 20101010;
+        const bool byte_order = h.wrong_byte_order();
         assert(byte_order == m_byte_order);
         if (byte_order)
         {
+            for (uint32_t j = 1; j < sizeof(h) / 4; ++j)
+                ((uint32_t *)&h)[j] = swap_bytes(((uint32_t *)&h)[j]);
+
             for (uint32_t j = 1; j < sizeof(e) / 4; ++j)
                 ((uint32_t *)&e)[j] = swap_bytes(((uint32_t *)&e)[j]);
 
             std::swap(((uint32_t *)&e.offset)[0], ((uint32_t *)&e.offset)[1]);
         }
 
-        assert(e.byte_order_20101010 == 20101010);
-        assert(e.flags == header.flags);
+        assert(h.byte_order_20101010 == 20101010);
+        assert(h.flags == header.flags);
         //assert(e.idx == (m_archieved ? i+10000 : i));
         assert(e.offset+e.size <= (uint64_t)m_data->get_size());
         //assert(e.arch_unknown_16 == (m_archieved ? 16 : 0));
 
-        for (uint32_t j = 0; j < e.unknown_struct_count; ++j)
+        for (uint32_t j = 0; j < h.unknown_struct_count; ++j)
         {
             unknown_struct s = r.read<unknown_struct>();
             if (byte_order)
@@ -121,12 +110,13 @@ bool dpl_file::open(const char *name)
                     ((uint32_t *)&s)[j] = swap_bytes(((uint32_t *)&s)[j]);
             }
 
-            assert(s.idx <= e.unknown_struct_count);
+            assert(s.idx <= h.unknown_struct_count);
         }
 
+        m_infos[i].header = h;
         m_infos[i].offset = e.offset;
         m_infos[i].size = e.size;
-        m_infos[i].unpacked_size = m_archieved ? e.arch_unpacked_size : e.size;
+        m_infos[i].unpacked_size = m_archieved ? h.size + sizeof(fhm_file::fhm_header) : e.size;
         m_infos[i].key = e.key;
     }
 
@@ -192,6 +182,9 @@ bool dpl_file::read_file_data(int idx, void *data) const
     if (!m_archieved)
         return m_data->read_chunk(data, e.size, (size_t)e.offset);
 
+    memcpy(data, &e.header, sizeof(e.header));
+    data = (char *)data + sizeof(e.header);
+
     nya_memory::tmp_buffer_scoped buf(e.size);
     if (!m_data->read_chunk(buf.get_data(), e.size, (size_t)e.offset))
         return false;
@@ -240,46 +233,6 @@ bool dpl_file::read_file_data(int idx, void *data) const
     }
 
     return true;
-}
-
-//------------------------------------------------------------
-
-void dpl_entry::read_entries(uint32_t offset)
-{
-    if (!m_data)
-        return;
-
-    assert(offset < m_size);
-    nya_memory::memory_reader reader((char *)m_data + offset, m_size - offset);
-
-    uint32_t count = reader.read<uint32_t>();
-    for (uint32_t i = 0; i < count; ++i)
-    {
-        reader.seek(4 + 8 * i);
-
-        uint32_t has_childs = reader.read<uint32_t>();
-        uint32_t entry_offset = reader.read<uint32_t>();
-
-        assert(has_childs == 0 || has_childs == 1);
-
-        if (has_childs > 0)
-        {
-            read_entries(offset + entry_offset);
-            continue;
-        }
-
-        reader.seek(entry_offset);
-
-        auto unknown = reader.read<uint16_t>();
-        assert(unknown<32);
-        auto unknown2 = reader.read<uint16_t>();
-        assert(unknown2<16);
-        auto unknown_pot = reader.read<uint32_t>();
-        assert(unknown_pot == 16 || unknown_pot == 128 || unknown_pot == 4096);
-        auto off = reader.read<uint32_t>();
-        auto size = reader.read<uint32_t>();
-        m_entries.push_back(std::make_pair(off, size));
-    }
 }
 
 //------------------------------------------------------------
