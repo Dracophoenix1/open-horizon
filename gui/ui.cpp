@@ -9,6 +9,10 @@
 #include "util/half.h"
 #include "render/platform_specific_gl.h"
 
+#ifdef min
+#undef min
+#endif
+
 namespace gui
 {
 //------------------------------------------------------------
@@ -326,6 +330,7 @@ bool fonts::load(const char *name)
         print_data(r);
     }
 
+    m.close();
     return true;
 }
 
@@ -576,6 +581,7 @@ bool tiles::load(const char *name)
         print_data(reader);
     }
 
+    m.close();
     return true;
 }
 

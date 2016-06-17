@@ -9,17 +9,36 @@
 
 bool fhm_file::open(const char *name)
 {
+    return open(nya_resources::get_resources_provider().access(name));
+}
+
+//------------------------------------------------------------
+
+bool fhm_file::open(nya_resources::resource_data *data)
+{
     close();
 
-    m_data = nya_resources::get_resources_provider().access(name);
-    if (!m_data)
+    if (!data)
     {
         nya_resources::log()<<"unable to open fhm file\n";
         return false;
     }
 
-    read_chunks_info(48);
+    m_data = data;
 
+    fhm_header header;
+    m_data->read_chunk(&header, sizeof(header), 0);
+    if (!header.check_sign())
+    {
+        nya_resources::log()<<"invalid fhm file\n";
+        close();
+        return false;
+    }
+
+    assert(!header.wrong_byte_order()); //ToDo
+    assert(header.size + sizeof(header) == m_data->get_size()); //assumption
+
+    read_chunks_info(sizeof(header));
     return true;
 }
 
@@ -58,7 +77,7 @@ bool fhm_file::read_chunks_info(size_t base_offset)
         assert(read_ok);
 
         chunk c;
-        c.offset = chunk_info.offset + 48;
+        c.offset = chunk_info.offset + sizeof(fhm_header);
         c.size = chunk_info.size;
         c.type = 0;
         if (c.size >= 4)

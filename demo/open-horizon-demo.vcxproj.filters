@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="Source Files">
@@ -72,10 +72,16 @@
     <ClCompile Include="../renderer/plane_camera.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="../renderer/particles.cpp">
+        <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="../renderer/scene.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="../renderer/shared.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="../renderer/sky.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="../renderer/world.cpp">
@@ -164,10 +170,16 @@
     <ClInclude Include="../renderer/plane_camera.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="../renderer/particles.h">
+        <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="../renderer/scene.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="../renderer/shared.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="../renderer/sky.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="../renderer/world.h">

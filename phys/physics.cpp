@@ -50,6 +50,8 @@ void world::set_location(const char *name)
     fhm.read_chunk_data(5, &m_heights[0]);
 
     //ToDo: collision meshes
+
+    fhm.close();
 }
 
 //------------------------------------------------------------
@@ -92,7 +94,12 @@ missile_ptr world::add_missile(const char *name)
 
 void world::spawn_bullet(const char *type, const nya_math::vec3 &pos, const nya_math::vec3 &dir)
 {
-    //ToDo
+    bullet b;
+    b.pos = pos;
+    b.time = 1500; //ToDo
+    b.vel = dir * 1000.0f; //ToDo
+
+    m_bullets.push_back(b);
 }
 
 //------------------------------------------------------------
@@ -146,7 +153,11 @@ void world::update_bullets(int dt, hit_hunction on_hit)
     float kdt = dt * 0.001f;
 
     for (auto &b: m_bullets)
+    {
+        b.time -= dt;
         b.pos += b.vel * kdt;
+        b.vel.y -= 9.8 * kdt;
+    }
 }
 
 //------------------------------------------------------------
@@ -187,7 +198,7 @@ float world::get_height(float x, float z) const
     const int hpp = (hpw-1)/quads_per_patch;
     const float *h = &m_heights[h_idx+(qidx_x + qidx_z * hpw)*hpp];
 
-    const uint hhpw = hquads_per_quad*hquads_per_quad+1;
+    const unsigned int hhpw = hquads_per_quad*hquads_per_quad+1;
 
     const int hidx_x = idx_x - tmp_idx_x * hquads_per_quad;
     const int hidx_z = idx_z - tmp_idx_z * hquads_per_quad;

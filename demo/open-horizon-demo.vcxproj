@@ -25,7 +25,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v120</PlatformToolset>
+    <PlatformToolset>v120_xp</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
@@ -55,7 +55,7 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;_CRT_SECURE_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>../;../deps/nya-engine/;../deps/glfw-bin/include/;../deps/pugixml-1.4/src/;../deps/zlib-1.2.8/</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
@@ -76,7 +76,7 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;_CRT_SECURE_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>../;../deps/nya-engine/;../deps/glfw-bin/include/;../deps/pugixml-1.4/src/;../deps/zlib-1.2.8/</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
@@ -118,8 +118,10 @@
     <ClCompile Include="../renderer/location_params.cpp" />
     <ClCompile Include="../renderer/model.cpp" />
     <ClCompile Include="../renderer/plane_camera.cpp" />
+    <ClCompile Include="../renderer/particles.cpp" />
     <ClCompile Include="../renderer/scene.cpp" />
     <ClCompile Include="../renderer/shared.cpp" />
+    <ClCompile Include="../renderer/sky.cpp" />
     <ClCompile Include="../renderer/world.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -143,8 +145,10 @@
     <ClInclude Include="../renderer/location_params.h" />
     <ClInclude Include="../renderer/model.h" />
     <ClInclude Include="../renderer/plane_camera.h" />
+    <ClInclude Include="../renderer/particles.h" />
     <ClInclude Include="../renderer/scene.h" />
     <ClInclude Include="../renderer/shared.h" />
+    <ClInclude Include="../renderer/sky.h" />
     <ClInclude Include="../renderer/world.h" />
     <ClInclude Include="../util/params.h" />
     <ClInclude Include="../util/util.h" />
