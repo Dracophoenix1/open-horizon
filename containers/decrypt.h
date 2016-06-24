@@ -6,7 +6,7 @@
 
 //------------------------------------------------------------
 
-const unsigned char *get_dpl_key(unsigned char key)
+const inline unsigned char *get_key(unsigned char key)
 {
     const static unsigned char keys[256][8] =
     {
@@ -141,6 +141,19 @@ const unsigned char *get_dpl_key(unsigned char key)
     };
 
     return keys[key];
+}
+
+//------------------------------------------------------------
+
+inline void decrypt(void *data, size_t size, unsigned char key_idx)
+{
+    const auto *keys = get_key(key_idx);
+
+    for (size_t i = 0; i < size/4; ++i)
+        ((unsigned int *)data)[i] ^= ((unsigned int *)keys)[i % 2];
+
+    for (size_t i = (size/4)*4; i < size; ++i)
+        ((unsigned char *)data)[i] ^= ((unsigned char *)keys)[i % 8];
 }
 
 //------------------------------------------------------------

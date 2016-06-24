@@ -40,6 +40,11 @@ public:
         return m_mesh.get_relative_anim_time(lod_idx, anim_hash_id);
     }
 
+    void set_anim_weight(int lod_idx, unsigned int anim_hash_id, float weight)
+    {
+        m_mesh.set_anim_weight(lod_idx, anim_hash_id, weight);
+    }
+
     bool has_anim(int lod_idx, unsigned int anim_hash_id)
     {
         return m_mesh.has_anim(lod_idx, anim_hash_id);
@@ -55,9 +60,9 @@ public:
         return m_mesh.set_texture(lod_idx, semantics, file_name);
     }
 
-    bool load_material(int lod_idx, int material_idx, const char *file_name, const char *shader)
+    void set_material(int lod_idx, const fhm_materials::material &m, const char *shader)
     {
-        return m_mesh.load_material(lod_idx, material_idx, file_name, shader);
+        return m_mesh.set_material(lod_idx, m, shader);
     }
 
     int get_bones_count(int lod_idx);
@@ -67,6 +72,8 @@ public:
     nya_math::vec3 get_bone_pos(int lod_idx, int bone_idx);
     nya_math::quat get_bone_rot(int lod_idx, int bone_idx);
     void set_bone_rot(int lod_idx, int bone_idx, const nya_math::quat &rot);
+
+    nya_scene::mesh &get_mesh(int lod_idx);
 
 public:
     model() {}

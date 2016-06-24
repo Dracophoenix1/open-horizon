@@ -21,7 +21,7 @@ namespace params
 template<typename t> class value
 {
 public:
-    inline value(): m_value(0.0f) {}
+    inline value(): m_value(0) {}
     inline value(const t& v): m_value(v) {}
     inline operator t&() { return m_value; }
     inline operator const t&() const { return m_value; }
@@ -45,9 +45,9 @@ public:
     color3 read_color3_uint()
     {
         params::color3 c;
-        c.z = read<uint8_t>()/255.0;
-        c.y = read<uint8_t>()/255.0;
-        c.x = read<uint8_t>()/255.0;
+        c.z = read<uint8_t>()/255.0f;
+        c.y = read<uint8_t>()/255.0f;
+        c.x = read<uint8_t>()/255.0f;
         skip(1);
         return c;
     }
@@ -58,7 +58,7 @@ public:
         c.z = read<float>();
         c.y = read<float>();
         c.x = read<float>();
-        return c / 255.0;
+        return c / 255.0f;
     }
 
     color4 read_color4()
@@ -68,14 +68,14 @@ public:
         c.z = read<float>();
         c.y = read<float>();
         c.x = read<float>();
-        return c / 255.0;
+        return c / 255.0f;
     }
 
     vec3 read_dir_py()
     {
         const float pitch = read<float>() * nya_math::constants::pi / 180.0f;
         const float yaw = read<float>() * nya_math::constants::pi / 180.0f;
-        return nya_math::quat(pitch, -yaw, 0.0f).rotate(nya_math::vec3(0.0, 0.0, 1.0));
+        return nya_math::quat(pitch, -yaw, 0.0f).rotate(nya_math::vec3(0.0f, 0.0f, 1.0f));
     }
 
     memory_reader(const void *data, size_t size): nya_memory::memory_reader(data, size) {}
@@ -108,7 +108,7 @@ public:
 
             if (type == "float")
                 s >> m_float_params[name];
-            else if (type == "S16" || type == "s16" || type == "U16" || type == "u16")
+            else if (type == "S16" || type == "S32" || type == "s16" || type == "U16" || type == "u16")
                 s >> m_int_params[name];
             else
                 printf("invalid text param %s in %s\n", type.c_str(), fname);
@@ -127,7 +127,7 @@ public:
         return p == m_int_params.end() ? default_value : p->second;
     }
 
-private:
+public:
     std::map<std::string,float> m_float_params;
     std::map<std::string,int> m_int_params;
 };

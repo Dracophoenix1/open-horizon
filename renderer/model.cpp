@@ -76,7 +76,7 @@ bool model::load(const char *name, const location_params &params)
     else
     {
         tdp_name[tdp_name.size()-5] = '0';
-        load_tdp(tdp_name.c_str());
+        load_tdp(tdp_name);
     }
 
     lst main_list(folder + name + "/" + name +"_com.lst");
@@ -125,6 +125,7 @@ void model::load_tdp(const std::string &name)
         }
         else if (nya_resources::check_extension(s.c_str(), "img"))
         {
+            assert(!headers.empty());
             nya_memory::tmp_buffer_scoped buf(header.size() + headers[idx].size() + res.get_size());
             buf.copy_from(&header[0], header.size());
             buf.copy_from(&(headers[idx])[0], headers[idx].size(), header.size());
@@ -222,6 +223,16 @@ void model::set_bone_rot(int lod_idx, int bone_idx, const nya_math::quat &rot)
         return;
 
     return m_mesh.get_mesh(lod_idx).set_bone_rot(bone_idx, rot, true);
+}
+
+//------------------------------------------------------------
+
+nya_scene::mesh &model::get_mesh(int lod_idx)
+{
+    if (lod_idx < 0 || lod_idx >= m_mesh.get_lods_count())
+        return nya_memory::invalid_object<nya_scene::mesh>();
+
+    return m_mesh.get_mesh(lod_idx);
 }
 
 //------------------------------------------------------------

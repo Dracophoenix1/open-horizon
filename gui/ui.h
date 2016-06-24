@@ -46,7 +46,7 @@ public:
     void draw(const std::vector<rect_pair> &elements, const nya_scene::texture &tex,
               const nya_math::vec4 &color = nya_math::vec4(1.0, 1.0, 1.0, 1.0), const transform &t = transform()) const;
     void draw(const std::vector<nya_math::vec2> &elements,
-              const nya_math::vec4 &color = nya_math::vec4(1.0, 1.0, 1.0, 1.0), const transform &t = transform()) const;
+              const nya_math::vec4 &color = nya_math::vec4(1.0, 1.0, 1.0, 1.0), const transform &t = transform(), bool loop = true) const;
 public:
     int get_width(bool real = false) const { return real ? m_width : 1366; }
     int get_height(bool real = false) const { return real ? m_height : 768; }
@@ -59,6 +59,7 @@ private:
     int m_width, m_height;
     nya_render::vbo m_quads_mesh;
     nya_render::vbo m_lines_mesh;
+    nya_render::vbo m_lines_loop_mesh;
     nya_scene::material m_material;
     mutable nya_scene::material::param_proxy m_color;
     mutable nya_scene::material::param_array_proxy m_tr;
@@ -78,6 +79,7 @@ public:
 public:
     //returns width of drawn text
     int draw_text(const render &r, const wchar_t *text, const char *font, int x, int y, const nya_math::vec4 &color) const;
+    int get_text_width(const wchar_t *text, const char *font) const;
 
 private:
     struct acf_font_header
@@ -138,7 +140,7 @@ class tiles
 {
 public:
     bool load(const char *name);
-    void draw(const render &r, int id, int x, int y, const nya_math::vec4 &color, float yaw = 0.0f);
+    void draw(const render &r, int id, int x, int y, const nya_math::vec4 &color, float yaw = 0.0f, float scale = 1.0f);
     int get_count() { return (int)m_hud.size(); }
     int get_id(int idx);
     void set_progress(int id, int sub_idx, float value);

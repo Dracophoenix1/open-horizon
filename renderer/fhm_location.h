@@ -22,7 +22,7 @@ class fhm_location
     friend class location; //ToDo
 
 public:
-    bool load(const char *file_name, const location_params &params);
+    bool load(const char *file_name, const location_params &params, nya_math::vec3 fog_color);
     void update(int dt);
     void draw_mptx();
     void draw_mptx_transparent();
@@ -34,7 +34,6 @@ public:
 
 protected:
     bool read_mptx(memory_reader &reader);
-    bool read_colh(memory_reader &reader);
     bool read_ntxr(memory_reader &reader, fhm_location_load_data &load_data);
     bool read_wpdc(memory_reader &reader, fhm_location_load_data &load_data);
     bool read_location_tex_indices(memory_reader &reader, fhm_location_load_data &load_data);
@@ -68,9 +67,6 @@ protected:
 
     std::vector<mptx_mesh> m_mptx_meshes;
     std::vector<mptx_mesh> m_mptx_transparent_meshes;
-
-    struct col_mesh { nya_math::aabb box; };
-    std::vector<col_mesh> m_cols;
 
     struct landscape
     {

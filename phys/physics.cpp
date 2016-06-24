@@ -5,6 +5,7 @@
 #include "physics.h"
 #include "math/constants.h"
 #include "math/scalar.h"
+#include "memory/memory_reader.h"
 #include "containers/fhm.h"
 #include <algorithm>
 
@@ -38,6 +39,10 @@ inline float tend(float value, float target, float speed)
 
 void world::set_location(const char *name)
 {
+    m_heights.clear();
+    m_meshes.clear();
+    m_qtree = nya_math::quadtree();
+
     fhm_file fhm;
     if (!fhm.open((std::string("Map/") + name + ".fhm").c_str()))
         return;
@@ -49,26 +54,74 @@ void world::set_location(const char *name)
     assert(!m_heights.empty());
     fhm.read_chunk_data(5, &m_heights[0]);
 
-    //ToDo: collision meshes
+    for (int i = 0; i < fhm.get_chunks_count(); ++i)
+    {
+        if (fhm.get_chunk_type(i) == 'HLOC')
+        {
+            nya_memory::tmp_buffer_scoped buf(fhm.get_chunk_size(i));
+            fhm.read_chunk_data(i, buf.get_data());
+            m_meshes.resize(m_meshes.size() + 1);
+            m_meshes.back().load(buf.get_data(), buf.get_size());
+        }
+    }
 
     fhm.close();
+
+    if (!fhm.open((std::string("Map/") + name + "_mpt.fhm").c_str()))
+        return;
+
+    assert(fhm.get_chunks_count() == m_meshes.size());
+
+    for (int i = 0; i < fhm.get_chunks_count(); ++i)
+    {
+        assert(fhm.get_chunk_type(i) == 'xtpm');
+
+        nya_memory::tmp_buffer_scoped buf(fhm.get_chunk_size(i));
+        fhm.read_chunk_data(i, buf.get_data());
+        nya_memory::memory_reader reader(buf.get_data(), buf.get_size());
+        reader.seek(128);
+        const auto off = m_instances.size();
+        const auto count = reader.read<uint32_t>();
+        reader.skip(16);
+        m_instances.resize(off + count);
+        for (uint32_t j = 0; j < count; ++j)
+        {
+            auto &inst = m_instances[off + j];
+            inst.mesh_idx = i;
+            inst.pos = reader.read<nya_math::vec3>();
+            const float yaw = reader.read<float>();
+            inst.yaw_s = sinf(yaw);
+            inst.yaw_c = cosf(yaw);
+            inst.bbox = nya_math::aabb(m_meshes[i].bbox, inst.pos,
+                                       nya_math::quat(0.0f, yaw, 0.0f), nya_math::vec3(1.0f, 1.0f, 1.0f));
+        }
+    }
+
+    fhm.close();
+
+    const int size = 64000;
+    m_qtree = nya_math::quadtree(-size, -size, size * 2, size * 2, 10);
+
+    for(int i=0;i<(int)m_instances.size();++i)
+        m_qtree.add_object(m_instances[i].bbox, i);
 }
 
 //------------------------------------------------------------
 
-plane_ptr world::add_plane(const char *name)
+plane_ptr world::add_plane(const char *name, bool add_to_world)
 {
     plane_ptr p(new plane());
     p->params.load(("Player/Behavior/param_p_" + std::string(name) + ".bin").c_str());
     p->reset_state();
-    m_planes.push_back(p);
+    if (add_to_world)
+        m_planes.push_back(p);
     get_arms_param();  //cache
     return p;
 }
 
 //------------------------------------------------------------
 
-missile_ptr world::add_missile(const char *name)
+missile_ptr world::add_missile(const char *name, bool add_to_world)
 {
     missile_ptr m(new missile());
 
@@ -86,56 +139,182 @@ missile_ptr world::add_missile(const char *name)
     m->rot_max_hi = param.get_float(pref + "rotAngMaxHi") * ang_to_rad;
     m->rot_max_low = param.get_float(pref + "rotAngMaxLow") * ang_to_rad;
 
-    m_missiles.push_back(m);
+    if (add_to_world)
+        m_missiles.push_back(m);
     return m;
 }
 
 //------------------------------------------------------------
 
-void world::spawn_bullet(const char *type, const nya_math::vec3 &pos, const nya_math::vec3 &dir)
+bool world::spawn_bullet(const char *type, const vec3 &pos, const vec3 &dir, vec3 &result_pos)
 {
     bullet b;
     b.pos = pos;
     b.time = 1500; //ToDo
     b.vel = dir * 1000.0f; //ToDo
 
+    const float t = (b.time * 0.001f);
+    auto to_dir = b.vel * t;
+    to_dir.y -= 9.8f * t * t * 0.5f;
+
+    const auto to = pos + to_dir;
+
+    static std::vector<int> insts;
+    float result = 1.0f, min_result = 1.0f;
+    bool hit = false;
+    nya_math::aabb box(nya_math::vec3::min(pos,to), nya_math::vec3::max(pos,to));
+    if (m_qtree.get_objects(box, insts))
+    {
+        for (auto &i:insts)
+        {
+            const auto &mi = m_instances[i];
+
+            const auto lpt = mi.transform_inv(to), lpf = mi.transform_inv(pos);
+            auto &m = m_meshes[mi.mesh_idx];
+            //if (!m.bbox.test_intersect(lpt)) //ToDo: trace bbox
+            //    continue;
+
+            if(!m.trace(lpf, lpt, result))
+                continue;
+
+            if(result < min_result)
+                min_result = result;
+
+            hit = true;
+            //printf("hit instance %d mesh %d\n", i, mi.mesh_idx);
+        }
+    }
+
+    if (hit)
+        b.time *= min_result;
+
     m_bullets.push_back(b);
+
+    result_pos = pos + to_dir * min_result;
+
+    return hit;
 }
 
 //------------------------------------------------------------
 
-void world::update_planes(int dt, hit_hunction on_hit)
+void world::update_planes(int dt, const hit_hunction &on_hit)
 {
-    m_planes.erase(std::remove_if(m_planes.begin(), m_planes.end(), [](const plane_ptr &p){ return p.use_count() <= 1; }), m_planes.end());
+    m_planes.erase(std::remove_if(m_planes.begin(), m_planes.end(), [](const plane_ptr &p){ return p.unique(); }), m_planes.end());
     for (auto &p: m_planes)
     {
         p->update(dt);
 
-        if (p->pos.y < get_height(p->pos.x, p->pos.z) + 5.0f)
+        const auto pt = p->pos + p->vel * (dt * 0.001f);
+        const auto pt_nose = pt + p->rot.rotate(p->nose_offset);
+
+        auto wing_offset2 = p->wing_offset;
+        wing_offset2.x = -wing_offset2.x; //will not work for AD-1, lol
+        const auto pt_wing = pt + p->rot.rotate(p->wing_offset);
+        const auto pt_wing2 = pt + p->rot.rotate(wing_offset2);
+
+        const float r = nya_math::max(p->nose_offset.length(), p->wing_offset.length()) * 1.5;
+
+        nya_math::aabb box;
+        box.origin = pt;
+        box.delta.set(r, r, r);
+
+        bool hit = pt.y < get_height(pt.x, pt.z, false) + 5.0f;
+        if (!hit)
         {
-            p->pos -= p->vel * (dt * 0.001f);
-            //p->rot = quat(-0.5, p->rot.get_euler().y, 0.0);
+            static std::vector<int> insts;
+            if (m_qtree.get_objects(box, insts))
+            {
+                for (auto &i:insts)
+                {
+                    const auto &mi = m_instances[i];
+                    const auto &m = m_meshes[mi.mesh_idx];
+
+                    /*
+                    box.origin = mi.transform_inv(pt);
+                    if (!m.bbox.test_intersect(box))
+                        continue;
+                    */
+
+                    auto lpt = mi.transform_inv(pt_nose), lpf = mi.transform_inv(p->pos);
+                    if (m.trace(lpf, lpt))
+                    {
+                        hit = true;
+                        break;
+                    }
+
+                    auto lwt = mi.transform_inv(pt_wing), lwt2 = mi.transform_inv(pt_wing2);
+
+                    if (m.trace(lwt, lwt2) || m.trace(lwt2, lwt)) //trace fails near from point
+                    {
+                        hit = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (hit)
+        {
             p->vel = vec3();
 
             if (on_hit)
                 on_hit(std::static_pointer_cast<object>(p), object_ptr());
         }
+/*
+        //test
+        get_debug_draw().clear();
+        static std::vector<int> insts;
+
+        nya_math::aabb test;
+        test.origin = p->pos;
+        test.delta.set(10, 10, 10);
+
+        //m_qtree.get_objects(p->pos, insts);
+        m_qtree.get_objects(test, insts);
+        for (auto &i: insts)
+            get_debug_draw().add_aabb(m_instances[i].bbox);
+*/
     }
 }
 
 //------------------------------------------------------------
 
-void world::update_missiles(int dt, hit_hunction on_hit)
+void world::update_missiles(int dt, const hit_hunction &on_hit)
 {
-    m_missiles.erase(std::remove_if(m_missiles.begin(), m_missiles.end(), [](const missile_ptr &m){ return m.use_count() <= 1; }), m_missiles.end());
+    m_missiles.erase(std::remove_if(m_missiles.begin(), m_missiles.end(), [](const missile_ptr &m){ return m.unique(); }), m_missiles.end());
     for (auto &m: m_missiles)
     {
         m->update(dt);
 
-        auto &p = m->pos;
-        if (p.y < get_height(p.x, p.z) + 1.0f)
+        const auto pt = m->pos + m->vel * (dt * 0.001f);
+
+        bool hit = pt.y < get_height(pt.x, pt.z, false) + 1.0f;
+        if (!hit)
         {
-            m->pos -= m->vel * (dt * 0.001f);
+            static std::vector<int> insts;
+            if (m_qtree.get_objects(pt, insts))
+            {
+                for (auto &i:insts)
+                {
+                    const auto &mi = m_instances[i];
+
+                    auto lpt = mi.transform_inv(pt), lpf = mi.transform_inv(m->pos);
+                    auto &m = m_meshes[mi.mesh_idx];
+                    if (!m.bbox.test_intersect(lpt))
+                        continue;
+
+                    if(!m.trace(lpf, lpt))
+                        continue;
+
+                    hit = true;
+                    break;
+                }
+            }
+        }
+
+        if (hit)
+        {
+            //m->pos -= m->vel * (dt * 0.001f);
             m->vel = vec3();
 
             if (on_hit)
@@ -146,7 +325,7 @@ void world::update_missiles(int dt, hit_hunction on_hit)
 
 //------------------------------------------------------------
 
-void world::update_bullets(int dt, hit_hunction on_hit)
+void world::update_bullets(int dt)
 {
     m_bullets.erase(std::remove_if(m_bullets.begin(), m_bullets.end(), [](const bullet &b){ return b.time < 0; }), m_bullets.end());
 
@@ -156,15 +335,15 @@ void world::update_bullets(int dt, hit_hunction on_hit)
     {
         b.time -= dt;
         b.pos += b.vel * kdt;
-        b.vel.y -= 9.8 * kdt;
+        b.vel.y -= 9.8f * kdt;
     }
 }
 
 //------------------------------------------------------------
 
-float world::get_height(float x, float z) const
+float world::get_height(float x, float z, bool include_objects) const
 {
-    if(m_heights.empty())
+    if (m_heights.empty())
         return 0.0f;
 
     const int patch_size = 1024;
@@ -214,7 +393,33 @@ float world::get_height(float x, float z) const
     const float h00_h10 = nya_math::lerp(h00, h10, kx);
     const float h01_h11 = nya_math::lerp(h01, h11, kx);
 
-    return nya_math::lerp(h00_h10, h01_h11, kz);
+    float height = nya_math::lerp(h00_h10, h01_h11, kz);
+
+    if (!include_objects)
+        return height;
+
+    const float max_height = 16000.0f;
+    vec3 pos(x, max_height, z), to(x, 0.0f, z);
+    static std::vector<int> insts;
+    if (m_qtree.get_objects((int)x, (int)z, insts))
+    {
+        for (auto &i:insts)
+        {
+            const auto &mi = m_instances[i];
+            const auto lpt = mi.transform_inv(to), lpf = mi.transform_inv(pos);
+            auto &m = m_meshes[mi.mesh_idx];
+
+            float h;
+            if(!m.trace(lpf, lpt, h))
+                continue;
+
+            h = max_height * (1.0f - h);
+            if(h > height)
+                height = h;
+        }
+    }
+
+    return height;
 }
 
 //------------------------------------------------------------
@@ -223,7 +428,7 @@ void plane::reset_state()
 {
     thrust_time = 0.0;
     rot_speed = vec3();
-    vel = rot.rotate(vec3(0.0, 0.0, 1.0)) * params.move.speed.speedCruising * kmph_to_meps;
+    vel = rot.rotate(vec3::forward()) * params.move.speed.speedCruising * kmph_to_meps;
 }
 
 //------------------------------------------------------------
@@ -262,34 +467,31 @@ void plane::update(int dt)
 
     //get axis
 
-    vec3 up(0.0, 1.0, 0.0);
-    vec3 forward(0.0, 0.0, 1.0);
-    vec3 right(1.0, 0.0, 0.0);
-    forward = rot.rotate(forward);
-    up = rot.rotate(up);
-    right = rot.rotate(right);
+    vec3 forward = rot.rotate(vec3::forward());
+    vec3 up = rot.rotate(vec3::up());
+    vec3 right = rot.rotate(vec3::right());
 
     //rotation
 
     float high_g_turn = 1.0f + controls.brake * 0.5;
-    rot = rot * quat(vec3(0.0, 0.0, 1.0), rot_speed.z * kdt * d2r * 0.7);
-    rot = rot * quat(vec3(0.0, 1.0, 0.0), rot_speed.y * kdt * d2r * 0.12);
-    rot = rot * quat(vec3(1.0, 0.0, 0.0), rot_speed.x * kdt * d2r * (0.13 + 0.05 * (1.0f - fabsf(up.y)))
+    rot = rot * quat(vec3::forward(), rot_speed.z * kdt * d2r * 0.7);
+    rot = rot * quat(vec3::up(), rot_speed.y * kdt * d2r * 0.12);
+    rot = rot * quat(vec3::right(), rot_speed.x * kdt * d2r * (0.13 + 0.05 * (1.0f - fabsf(up.y)))
                                * high_g_turn * (rot_speed.x < 0 ? 1.0f : 1.0f * params.rot.pitchUpDownR));
 
     //nose goes down while upside-down
 
     const vec3 rot_grav = params.rotgraph.rotGravR.get(speed_arg);
-    rot = rot * quat(vec3(1.0, 0.0, 0.0), -(1.0 - up.y) * kdt * d2r * rot_grav.x * 0.5f);
-    rot = rot * quat(vec3(0.0, 1.0, 0.0), -right.y * kdt * d2r * rot_grav.y * 0.5f);
+    rot = rot * quat(vec3::right(), -(1.0 - up.y) * kdt * d2r * rot_grav.x * 0.5f);
+    rot = rot * quat(vec3::up(), -right.y * kdt * d2r * rot_grav.y * 0.5f);
 
     //nose goes down during stall
 
     if (speed < params.move.speed.speedStall)
     {
         float stallRotSpeed = params.rot.rotStallR * kdt * d2r * 10.0f;
-        rot = rot * quat(vec3(1.0, 0.0, 0.0), up.y * stallRotSpeed);
-        rot = rot * quat(vec3(0.0, 1.0, 0.0), -right.y * stallRotSpeed);
+        rot = rot * quat(vec3::right(), up.y * stallRotSpeed);
+        rot = rot * quat(vec3::up(), -right.y * stallRotSpeed);
     }
 
     //adjust throttle to fit cruising speed
@@ -306,7 +508,7 @@ void plane::update(int dt)
 
     //afterburner
 
-    if (controls.throttle > 0.3)
+    if (controls.throttle > 0.3f)
     {
         thrust_time += kdt;
         if (thrust_time >= params.move.accel.thrustMinWait)
@@ -324,10 +526,17 @@ void plane::update(int dt)
 
     //apply acceleration
 
-    vel = vec3::lerp(vel, forward * speed, nya_math::min(5.0 * kdt, 1.0));
+    vel = vec3::lerp(vel, forward * speed, nya_math::min(5.0f * kdt, 1.0f));
 
-    vel += forward * (params.move.accel.acceleR * throttle * kdt * 50.0f - params.move.accel.deceleR * brake * kdt * speed * 0.04f);
+    const float brake_eff = nya_math::min(1.01f + forward.dot(vec3::up()), 1.0f);
+
+    vel += forward * (params.move.accel.acceleR * throttle * kdt * 50.0f - params.move.accel.deceleR * brake * brake_eff * kdt * speed * 0.04f);
     speed = vel.length();
+
+    const float grav = 9.8f * meps_to_kmph * kdt;
+    vel.y -= grav;
+    vel += up * grav;
+
     if (speed < params.move.speed.speedMin)
         vel = vel * (params.move.speed.speedMin / speed);
     if (speed > params.move.speed.speedMax)
@@ -338,6 +547,26 @@ void plane::update(int dt)
     vel *= kmph_to_meps;
 
     pos += vel * kdt;
+}
+
+//------------------------------------------------------------
+
+float plane::get_speed_kmh() const { return vel.length() * meps_to_kmph; }
+
+//------------------------------------------------------------
+
+float plane::get_thrust() const
+{
+    return 0.5 * (nya_math::min(nya_math::max(get_speed_kmh() - params.move.speed.speedMin, 0.0)
+                                / (params.move.speed.speedCruising - params.move.speed.speedMin), 1.0f)
+                  + thrust_time / params.move.accel.thrustMinWait);
+}
+
+//------------------------------------------------------------
+
+bool plane::get_ab() const
+{
+    return thrust_time >= params.move.accel.thrustMinWait;
 }
 
 //------------------------------------------------------------
@@ -359,31 +588,51 @@ void missile::update(int dt)
             accel_started = true;
         }
 
-        //ToDo: non-ideal rotation (clamp aoa)
-
         const float eps=1.0e-6f;
-        const nya_math::vec3 v=nya_math::vec3::normalize(target_dir);
+        const vec3 v=vec3::normalize(target_dir);
         const float xz_sqdist=v.x*v.x+v.z*v.z;
 
-        const float new_yaw=(xz_sqdist>eps*eps)? (atan2(v.x,v.z)) : rot.get_euler().y;
-        const float new_pitch=(fabsf(v.y)>eps)? (-atan2(v.y,sqrtf(xz_sqdist))) : 0.0f;
-        rot = nya_math::quat(new_pitch, new_yaw, 0.0);
+        auto pyr = rot.get_euler();
 
-        vec3 forward = rot.rotate(vec3(0.0, 0.0, 1.0));
+        const nya_math::angle_rad new_yaw=(xz_sqdist>eps*eps)? (atan2(v.x,v.z)) : pyr.y;
+        const nya_math::angle_rad new_pitch=(fabsf(v.y)>eps)? (-atan2(v.y,sqrtf(xz_sqdist))) : 0.0f;
 
-        vel += forward * accel * kdt;
-        float speed = vel.length();
-        if (speed > max_speed)
+        nya_math::angle_rad yaw_diff = new_yaw - pyr.y;
+        nya_math::angle_rad pitch_diff = new_pitch - pyr.x;
+
+        if (rot_max > eps)
         {
-            vel = vel * (max_speed / speed);
-            speed = max_speed;
+            const nya_math::angle_rad angle_clamp = rot_max * kdt;
+            yaw_diff.normalize().clamp(-angle_clamp, angle_clamp);
+            pitch_diff.normalize().clamp(-angle_clamp, angle_clamp);
         }
 
-        vel = vec3::lerp(vel, forward * speed, nya_math::min(5.0 * kdt, 1.0));
+        rot = quat(pyr.x + pitch_diff, pyr.y + yaw_diff, 0.0f);
 
+        float speed = vel.length() + accel * kdt;
+        if (speed > max_speed)
+            speed = max_speed;
+
+        vel = rot.rotate(vec3(0.0, 0.0, speed));
     }
 
     pos += vel * kdt;
+}
+
+//------------------------------------------------------------
+
+vec3 world::instance::transform(const vec3 &v) const
+{
+    return vec3(yaw_c*v.x+yaw_s*v.z, v.y, yaw_c*v.z-yaw_s*v.x) + pos;
+}
+
+//------------------------------------------------------------
+
+vec3 world::instance::transform_inv(const vec3 &v) const
+{
+    vec3 r = v - pos;
+    r.set(yaw_c*r.x-yaw_s*r.z, r.y, yaw_s*r.x+yaw_c*r.z);
+    return r;
 }
 
 //------------------------------------------------------------

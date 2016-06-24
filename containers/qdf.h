@@ -2,18 +2,14 @@
 // open horizon -- undefined_darkness@outlook.com
 //
 
+// acah base container
+
 #pragma once
 
 #include <stdio.h>
 #include <vector>
 #include <string>
-
-//------------------------------------------------------------
-
-#ifdef _WIN32
-typedef unsigned __int32 uint32_t;
-typedef unsigned __int64 uint64_t;
-#endif
+#include <stdint.h>
 
 //------------------------------------------------------------
 

@@ -2,10 +2,13 @@
 // open horizon -- undefined_darkness@outlook.com
 //
 
+// internal container since ac6
+
 #pragma once
 
 #include "resources/resources.h"
 #include <string.h>
+#include <stdint.h>
 #include <vector>
 
 //------------------------------------------------------------
@@ -19,20 +22,26 @@ public:
 
     int get_chunks_count() const { return int(m_chunks.size()); }
 
-    unsigned int get_chunk_type(int idx) const;
-    size_t get_chunk_size(int idx) const;
+    uint32_t get_chunk_type(int idx) const;
+    uint32_t get_chunk_size(int idx) const;
     bool read_chunk_data(int idx, void *data) const;
+    uint32_t get_chunk_offset(int idx) const;
 
-    size_t get_chunk_offset(int idx) const;
+    struct folder
+    {
+        std::vector<int> files;
+        std::vector<folder> folders;
+    };
 
-    fhm_file(): m_data(0) {}
+    const folder &get_root() const { return m_root; }
+    void debug_print() const;
 
 public:
     struct fhm_header
     {
         char sign[4];
         uint32_t byte_order_20101010;
-        uint32_t flags;
+        uint32_t timestamp;
         uint32_t unknown_struct_count;
 
         uint32_t unknown;
@@ -44,23 +53,25 @@ public:
         uint32_t unknown_pot;
         uint32_t unknown_pot2;
 
-        bool check_sign() const { return memcmp(sign, "FHM", 3) == 0; }
+        bool check_sign() const { return memcmp(sign, "FHM", 3) == 0 && (sign[3] == 0 || sign[3] == 1); }
         bool wrong_byte_order() const { return byte_order_20101010 != 20101010; }
     };
 
 private:
-    bool read_chunks_info(size_t base_offset);
+    bool read_chunks_info(size_t base_offset, folder &f);
 
     struct chunk
     {
-        unsigned int type;
-        size_t offset;
-        size_t size;
+        uint32_t type;
+        uint32_t offset;
+        uint32_t size;
     };
 
     std::vector<chunk> m_chunks;
+    folder m_root;
 
-    nya_resources::resource_data *m_data;
+    nya_resources::resource_data *m_data = 0;
+    bool m_byte_order = false;
 };
 
 //------------------------------------------------------------

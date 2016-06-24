@@ -3,7 +3,7 @@
 //
 
 #include "fhm.h"
-#include <assert.h>
+#include "util/util.h"
 
 //------------------------------------------------------------
 
@@ -26,25 +26,90 @@ bool fhm_file::open(nya_resources::resource_data *data)
 
     m_data = data;
 
-    fhm_header header;
-    m_data->read_chunk(&header, sizeof(header), 0);
-    if (!header.check_sign())
+    struct fhm_old_header //AC6
+    {
+        char sign[4];
+        uint32_t byte_order_0x01010010;
+        uint32_t unknown_zero[2];
+        uint32_t count;
+
+        bool check_sign() const { return memcmp(sign, "FHM ", 4) == 0; }
+        bool wrong_byte_order() const { return byte_order_0x01010010 != 0x01010010 && byte_order_0x01010010 != 0x20101010; }
+    };
+
+    fhm_old_header old_header;
+    if (!m_data->read_chunk(&old_header, sizeof(old_header))) //old header is smaller than fhm header
     {
         nya_resources::log()<<"invalid fhm file\n";
         close();
         return false;
     }
 
-    assert(!header.wrong_byte_order()); //ToDo
-    assert(header.size + sizeof(header) == m_data->get_size()); //assumption
+    if (old_header.check_sign())
+    {
+        m_byte_order = true;
+        old_header.byte_order_0x01010010 = swap_bytes(old_header.byte_order_0x01010010);
+        old_header.count = swap_bytes(old_header.count);
 
-    read_chunks_info(sizeof(header));
+        assert(!old_header.wrong_byte_order());
+        assume(old_header.unknown_zero[0] == 0 && old_header.unknown_zero[1] == 0);
+
+        if (!old_header.count)
+            return true;
+
+        std::vector<uint32_t> offsets(old_header.count * 2);
+        if (!m_data->read_chunk(offsets.data(), old_header.count * 2 * sizeof(uint32_t), sizeof(old_header)))
+        {
+            nya_resources::log()<<"invalid ac6 fhm file\n";
+            close();
+            return false;
+        }
+
+        m_chunks.resize(old_header.count);
+
+        size_t offset = 0;
+
+        for (auto &c: m_chunks)
+            c.offset = swap_bytes(offsets[offset++]);
+        for (auto &c: m_chunks)
+            c.size = swap_bytes(offsets[offset++]);
+
+        for (auto &c: m_chunks)
+        {
+            if (c.size == 0)
+            {
+                c.offset = 0;
+                continue;
+            }
+
+            assert(c.offset + c.size <= m_data->get_size());
+
+            if (c.size >= 4)
+                m_data->read_chunk(&c.type, 4, c.offset);
+        }
+
+        return true;
+    }
+
+    fhm_header header;
+    if (!m_data->read_chunk(&header, sizeof(header), 0) || !header.check_sign())
+    {
+        nya_resources::log()<<"invalid fhm file\n";
+        close();
+        return false;
+    }
+
+    assert(!header.wrong_byte_order());
+    assert(header.size + sizeof(header) <= m_data->get_size());
+    assume(header.size + sizeof(header) == m_data->get_size());
+
+    read_chunks_info(sizeof(header), m_root);
     return true;
 }
 
 //------------------------------------------------------------
 
-bool fhm_file::read_chunks_info(size_t base_offset)
+bool fhm_file::read_chunks_info(size_t base_offset, folder &f)
 {
     unsigned int chunks_count = 0;
     m_data->read_chunk(&chunks_count, 4, base_offset);
@@ -58,7 +123,8 @@ bool fhm_file::read_chunks_info(size_t base_offset)
 
         if (nested == 1)
         {
-            read_chunks_info(offset + base_offset);
+            f.folders.push_back({});
+            read_chunks_info(offset + base_offset, f.folders.back());
             continue;
         }
 
@@ -83,6 +149,9 @@ bool fhm_file::read_chunks_info(size_t base_offset)
         if (c.size >= 4)
             m_data->read_chunk(&c.type, 4, c.offset);
 
+        //for(int j=0;j<nesting;++j) printf("-/"); printf("chunk %d %d %d %.4s %d\n", (uint32_t)m_chunks.size(), nesting, g, (char *)&c.type, c.type);
+
+        f.files.push_back((int)m_chunks.size());
         m_chunks.push_back(c);
 
         //assert((chunk_info.unknown1 == 1 && chunk_info.unknown2 == 2) || (chunk_info.unknown1 == 0 && chunk_info.unknown2 == 0));
@@ -101,11 +170,12 @@ void fhm_file::close()
 
     m_data = 0;
     m_chunks.clear();
+    m_byte_order = false;
 }
 
 //------------------------------------------------------------
 
-size_t fhm_file::get_chunk_offset(int idx) const
+uint32_t fhm_file::get_chunk_offset(int idx) const
 {
     if (idx < 0 || idx >= int(m_chunks.size()))
         return 0;
@@ -115,7 +185,7 @@ size_t fhm_file::get_chunk_offset(int idx) const
 
 //------------------------------------------------------------
 
-size_t fhm_file::get_chunk_size(int idx) const
+uint32_t fhm_file::get_chunk_size(int idx) const
 {
     if (idx < 0 || idx >= int(m_chunks.size()))
         return 0;
@@ -135,12 +205,41 @@ bool fhm_file::read_chunk_data(int idx, void *data) const
 
 //------------------------------------------------------------
 
-unsigned int fhm_file::get_chunk_type(int idx) const
+uint32_t fhm_file::get_chunk_type(int idx) const
 {
     if (idx < 0 || idx >= int(m_chunks.size()))
         return 0;
 
     return m_chunks[idx].type;
+}
+
+//------------------------------------------------------------
+
+template<typename t> void debug_print(const fhm_file &fhm, t &folder, int nesting)
+{
+    for (auto &f: folder.folders)
+    {
+        for (int i = 0; i < nesting; ++i)
+            printf("=");
+        printf("<folder>\n");
+        debug_print(fhm, f, nesting + 1);
+    }
+
+    for (auto &f: folder.files)
+    {
+        for (int i = 0; i < nesting; ++i)
+            printf("-");
+        auto type = fhm.get_chunk_type(f);
+        printf("%2d %.4s %.2fMb\n", f, (char *)&type, fhm.get_chunk_size(f) / (1024.0f * 1024));
+    }
+
+    printf("\n");
+}
+
+void fhm_file::debug_print() const
+{
+    printf("fhm: \n");
+    ::debug_print(*this, m_root, 0);
 }
 
 //------------------------------------------------------------

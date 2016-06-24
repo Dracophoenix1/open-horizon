@@ -6,13 +6,20 @@
 
 #include "memory/tmp_buffer.h"
 #include "memory/memory_reader.h"
-#include "resources/resources.h"
+#include "resources/file_resources_provider.h"
 #include "render/debug_draw.h"
+#include "system/system.h"
 #include <assert.h>
 #include <math.h>
 #include <vector>
 #include <algorithm>
 #include <stdint.h>
+
+#ifdef _WIN32
+    #include <direct.h>
+#else
+    #include <sys/stat.h>
+#endif
 
 //------------------------------------------------------------
 
@@ -20,14 +27,35 @@
 
 //------------------------------------------------------------
 
-inline uint32_t swap_bytes(uint32_t v) { return (v >> 24) | ((v<<8) & 0x00FF0000) | ((v>>8) & 0x0000FF00) | (v << 24); }
 inline uint16_t swap_bytes(uint16_t v) { return ((v & 0xff) << 8) | ((v & 0xff00) >> 8); }
+inline uint32_t swap_bytes(uint32_t v) { return (v >> 24) | ((v<<8) & 0x00FF0000) | ((v>>8) & 0x0000FF00) | (v << 24); }
+inline uint64_t swap_bytes(uint64_t v)
+{
+    v = (v & 0x00000000FFFFFFFF) << 32 | (v & 0xFFFFFFFF00000000) >> 32;
+    v = (v & 0x0000FFFF0000FFFF) << 16 | (v & 0xFFFF0000FFFF0000) >> 16;
+    return (v & 0x00FF00FF00FF00FF) << 8  | (v & 0xFF00FF00FF00FF00) >> 8;
+}
+
+inline int16_t swap_bytes(int16_t v) { const uint16_t t = swap_bytes(*(uint16_t *)&v); return *(int16_t *)&t; }
+inline int32_t swap_bytes(int32_t v) { const uint32_t t = swap_bytes(*(uint32_t *)&v); return *(int32_t *)&t; }
+inline float swap_bytes(float v) { const uint32_t t = swap_bytes(*(uint32_t *)&v); return *(float *)&t; }
 
 //------------------------------------------------------------
 
-inline nya_memory::tmp_buffer_ref load_resource(const char *name)
+class noncopyable
 {
-    nya_resources::resource_data *res = nya_resources::get_resources_provider().access(name);
+protected:
+    noncopyable() {}
+
+private:
+    noncopyable(const noncopyable& ) = delete; // non construction-copyable
+    noncopyable& operator=(const noncopyable& ) = delete; // non copyable
+};
+
+//------------------------------------------------------------
+
+inline nya_memory::tmp_buffer_ref load_resource(nya_resources::resource_data *res)
+{
     if (!res)
         return nya_memory::tmp_buffer_ref();
 
@@ -36,6 +64,13 @@ inline nya_memory::tmp_buffer_ref load_resource(const char *name)
     res->release();
 
     return buf;
+}
+
+//------------------------------------------------------------
+
+inline nya_memory::tmp_buffer_ref load_resource(const char *name)
+{
+    return load_resource(nya_resources::get_resources_provider().access(name));
 }
 
 //------------------------------------------------------------
@@ -100,8 +135,8 @@ inline void print_data(const nya_memory::memory_reader &const_reader, size_t off
 
         if (substruct_size)
         {
-            static int k = 0, count = 0;
-            if (++k >= substruct_size) { k = 0; prnt("%d\n", count++); }
+            static size_t k = 0, count = 0;
+            if (++k >= substruct_size) { k = 0; prnt("%ld\n", count++); }
         }
     }
 
@@ -115,9 +150,9 @@ inline void print_data(const nya_memory::memory_reader &const_reader, size_t off
 
 //------------------------------------------------------------
 
-inline void print_data(const nya_memory::memory_reader &reader)
+inline void print_data(const nya_memory::memory_reader &reader, const char *file_name = 0)
 {
-    print_data(reader, reader.get_offset(), reader.get_remained());
+    print_data(reader, reader.get_offset(), reader.get_remained(), 0, file_name);
 }
 
 //------------------------------------------------------------
@@ -126,7 +161,7 @@ inline void print_data(const char *name, const char *file_name = 0)
 {
     nya_memory::tmp_buffer_scoped r(load_resource(name));
     nya_memory::memory_reader reader(r.get_data(),r.get_size());
-    print_data(reader, reader.get_offset(), reader.get_remained(), 0, file_name);
+    print_data(reader, file_name);
 }
 
 //------------------------------------------------------------
@@ -225,7 +260,7 @@ inline void find_data(nya_resources::resources_provider &rp, float *f, size_t co
         if (!r)
             continue;
 
-        unsigned int found_count = 0;
+        std::vector<size_t> found_offsets;
 
         nya_memory::tmp_buffer_scoped buf(r->get_size());
         r->read_all(buf.get_data());
@@ -248,14 +283,114 @@ inline void find_data(nya_resources::resources_provider &rp, float *f, size_t co
 
             }
             if (found)
-                ++found_count;
+                found_offsets.push_back(j);
         }
 
-        if (found_count > 0)
-            printf("found %u times in %s\n", found_count, n);
+        if (!found_offsets.empty())
+        {
+            printf("found %lu times in %s", found_offsets.size(), n);
+            if (found_offsets.size()<=10)
+            {
+                printf("at offset%s: ", found_offsets.size()==1?"":"s");
+                for (auto &o: found_offsets)
+                    printf("%lu ", o);
+            }
+            printf("\n");
+        }
     }
 
     printf("\n");
+}
+
+//------------------------------------------------------------
+
+inline std::vector<std::string> list_files(std::string folder)
+{
+    std::vector<std::string> result;
+    auto app_path = nya_system::get_app_path();
+    if (!app_path)
+        return result;
+
+    nya_resources::file_resources_provider fprov;
+    if (!fprov.set_folder((app_path + folder).c_str()))
+       return result;
+
+    for (int i = 0; i < fprov.get_resources_count(); ++i)
+    {
+        auto name = fprov.get_resource_name(i);
+        if (!name)
+            continue;
+
+        result.push_back(folder + name);
+    }
+
+    return result;
+}
+
+//------------------------------------------------------------
+
+inline void create_path(const char *dir)
+{
+    if (!dir)
+        return;
+
+    std::string tmp(dir);
+    for (char *p = &tmp[1]; *p; p++)
+    {
+        if (*p == '/')
+        {
+            *p = 0;
+#ifdef _WIN32
+            _mkdir(tmp.c_str());
+#else
+            mkdir(tmp.c_str(), S_IRWXU);
+#endif
+            *p = '/';
+        }
+    }
+}
+
+//------------------------------------------------------------
+
+inline bool write_file(const char *name, const void *buf, size_t size)
+{
+    if (!name || !buf)
+        return false;
+
+    FILE *f = fopen(name, "wb");
+    if (!f)
+    {
+        printf("unable to write file %s\n", name);
+        return false;
+    }
+
+    const bool r = fwrite(buf, size, 1, f) == size;
+    fclose(f);
+    return r;
+}
+
+//------------------------------------------------------------
+
+template<typename t> nya_resources::resource_data *access(t &provider, int idx)
+{
+    if (idx < 0 || idx >= provider.get_files_count())
+        return 0;
+
+    struct res: public nya_resources::resource_data
+    {
+        t &p;
+        int idx;
+
+        res(t &p, int idx): p(p), idx(idx) {}
+
+    private:
+        size_t get_size() override { return p.get_file_size(idx); }
+        bool read_all(void*data) override { return p.read_file_data(idx, data); }
+        bool read_chunk(void *data, size_t size, size_t offset=0) override { return p.read_file_data(idx, data, size, offset); }
+        void release() override { delete this; }
+    };
+
+    return new res(provider, idx);
 }
 
 //------------------------------------------------------------

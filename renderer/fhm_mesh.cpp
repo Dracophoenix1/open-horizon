@@ -24,6 +24,11 @@ extern nya_render::debug_draw test;
 
 //------------------------------------------------------------
 
+struct fhm_mnt { nya_render::skeleton skeleton; };
+struct fhm_mop2 { std::map<std::string, nya_scene::animation> animations; };
+
+//------------------------------------------------------------
+
 static nya_math::vec3 light_dir = nya_math::vec3(0.5f, 1.0f, 0.5f).normalize(); //ToDo
 
 //------------------------------------------------------------
@@ -53,31 +58,16 @@ public:
 
 //------------------------------------------------------------
 
-struct fhm_mesh_load_data
-{
-    struct mnt { nya_render::skeleton skeleton; };
-    std::vector<mnt> skeletons;
-
-    struct mop2 { std::map<std::string, nya_scene::animation> animations; };
-    std::vector<mop2> animations;
-
-    size_t ndxr_count;
-
-    fhm_mesh_load_data(): ndxr_count(0) {}
-};
-
-//------------------------------------------------------------
-
 void fhm_mesh::set_texture(int lod_idx, const char *semantics, const nya_scene::texture &tex)
 {
-    if (lod_idx < 0 || lod_idx >= lods.size())
+    if (lod_idx < 0 || lod_idx >= m_lods.size())
         return;
 
     if (!semantics)
         return;
 
-    for (int i = 0; i < lods[lod_idx].mesh.get_groups_count(); ++i)
-        lods[lod_idx].mesh.modify_material(i).set_texture(semantics, tex);
+    for (int i = 0; i < m_lods[lod_idx].mesh.get_groups_count(); ++i)
+        m_lods[lod_idx].mesh.modify_material(i).set_texture(semantics, tex);
 }
 
 //------------------------------------------------------------
@@ -88,62 +78,114 @@ bool fhm_mesh::load(const char *file_name)
     if (!fhm.open(file_name))
         return false;
 
-    fhm_mesh_load_data load_data;
+    //mad heuristic
 
+    int mnt_count = 0, mop2_count = 0, ndxr_offset = -1;
     for (int j = 0; j < fhm.get_chunks_count(); ++j)
     {
-        nya_memory::tmp_buffer_scoped buf(fhm.get_chunk_size(j));
-        fhm.read_chunk_data(j, buf.get_data());
-        memory_reader reader(buf.get_data(), fhm.get_chunk_size(j));
         const uint sign = fhm.get_chunk_type(j);
-
-        if (sign == 'RXDN') //NDXR mesh, load it after anything else
+        if (sign == '\0TNM')
         {
-            ++load_data.ndxr_count;
+            ++mnt_count;
         }
-        else if (sign == '2POM') //MOP2 animation
+        else if (sign == '2POM')
         {
-            read_mop2(reader, load_data);
+            ++mop2_count;
         }
-        else if (sign == '\0TNM') //MNT skeleton
+        else if (sign == 'RXDN' && ndxr_offset == -1)
+            ndxr_offset = j;
+        else if (sign == 'RXTN')
         {
-            read_mnt(reader, load_data);
-        }
-        else if (sign == 'ETAM') //MATE material
-        {
-            //read_mate(reader);
-            //read_unknown(reader);
-        }
-        else if (sign == 'RXTN') //NTXR texture
-        {
-            shared::load_texture(reader.get_data(), reader.get_remained());
-        }
-        else if (reader.get_remained() > 0)
-        {
-            //read_unknown(reader);
-
-            //char fname[255]; sprintf(fname, "out/chunk%d.txt", j); print_data(reader, 0, reader.get_remained(), 0, fname);
-
-            //read_unknown(reader);
-            //int i = 5;
-
-            //printf("chunk%d offset %ld\n", j, fhm.get_chunk_offset(j));
+            const auto size = fhm.get_chunk_size(j);
+            nya_memory::tmp_buffer_scoped buf(size);
+            fhm.read_chunk_data(j, buf.get_data());
+            shared::load_texture(buf.get_data(), buf.get_size());
         }
     }
 
-    for (int j = 0; j < fhm.get_chunks_count(); ++j)
+    int lods_count = 0;
+    for (int j = ndxr_offset; j < fhm.get_chunks_count(); ++j)
     {
-        nya_memory::tmp_buffer_scoped buf(fhm.get_chunk_size(j));
-        fhm.read_chunk_data(j, buf.get_data());
-        memory_reader reader((const char*)buf.get_data(), fhm.get_chunk_size(j));
-
-        if (fhm.get_chunk_type(j) == 1381516366) //NDXR mesh
+        const uint sign = fhm.get_chunk_type(j);
+        if (sign == 'RXDN' || sign == 0)
         {
-            //static int only = 0;
-            //if (only++ == 0)
-            read_ndxr(reader, load_data);
+            ++lods_count;
+        }
+        else
+        {
+            if (mnt_count > 2)
+                assert(sign == '\0TNM');
+            break;
         }
     }
+
+    if (lods_count > 0)
+    {
+        std::vector<fhm_mnt> mnts(lods_count);
+        std::vector<fhm_mop2> mop2s(lods_count);
+        m_lods.resize(lods_count);
+
+        const int signs[] = { '\0TNM', '2POM', 'RXDN' };
+
+        const bool special_mnt = mnt_count <= 2;
+        if (special_mnt && mnt_count > 0)
+        {
+            for (int j = 0; j < 2; ++j)
+            {
+                for (int i = 0, idx = 0; i < fhm.get_chunks_count(); ++i)
+                {
+                    if (fhm.get_chunk_type(i) == signs[j])
+                    {
+                        nya_memory::tmp_buffer_scoped buf(fhm.get_chunk_size(i));
+                        fhm.read_chunk_data(i, buf.get_data());
+                        memory_reader reader(buf.get_data(), buf.get_size());
+
+                        const int from = (idx++) * lods_count/mnt_count, to = from + lods_count/mnt_count;
+                        if (j == 0)
+                        {
+                            read_mnt(reader, mnts[from]);
+                            for (int i = from + 1; i < to; ++i)
+                                mnts[i] = mnts[from];
+                        }
+                        else
+                        {
+                            read_mop2(reader, mnts[from], mop2s[from]);
+                            for (int i = from + 1; i < to; ++i)
+                                mop2s[i] = mop2s[from];
+                        }
+                    }
+                }
+            }
+        }
+
+        const int offsets[] = { lods_count, lods_count * 2, 0 };
+        for (int i = (special_mnt ? 2 : 0); i < 3; ++i)
+        {
+            for (int j = 0; j < lods_count; ++j)
+            {
+                const int idx = ndxr_offset + offsets[i] + j;
+                const uint sign = fhm.get_chunk_type(idx);
+                const auto size = fhm.get_chunk_size(idx);
+                if (sign == signs[i])
+                {
+                    nya_memory::tmp_buffer_scoped buf(size);
+                    fhm.read_chunk_data(idx, buf.get_data());
+                    memory_reader reader(buf.get_data(), size);
+
+                    switch(i)
+                    {
+                        case 0: read_mnt(reader, mnts[j]); break;
+                        case 1: read_mop2(reader, mnts[j], mop2s[j]); break;
+                        case 2: read_ndxr(reader, mnts[j], mop2s[j], m_lods[j]); break;
+                    }
+                }
+                else
+                    assert(sign == 0 && size == 0);
+            }
+        }
+    }
+
+    //ToDo: other chunks
 
     fhm.close();
     return true;
@@ -151,25 +193,38 @@ bool fhm_mesh::load(const char *file_name)
 
 //------------------------------------------------------------
 
-bool fhm_mesh::load_material(int lod_idx, int material_idx, const char *file_name, const char *shader)
+bool fhm_materials::load(const char *file_name)
 {
+    materials.clear();
+    textures.clear();
+
     fhm_file m;
-    m.open(file_name);
-    int mat_idx = 0;
+    if (!m.open(file_name))
+        return false;
+
     for (int i = 0; i < m.get_chunks_count(); ++i)
     {
         auto t = m.get_chunk_type(i);
-        if (t == 'RXTM')
-            continue;
 
-        if (material_idx >=0 && mat_idx != material_idx)
+        if (t == ' SDD')
         {
-            ++mat_idx;
+            const auto size = m.get_chunk_size(i);
+            nya_scene::resource_data data(size);
+            m.read_chunk_data(i, data.get_data());
+            nya_scene::shared_texture st;
+            nya_scene::texture::load_dds(st, data, "");
+            nya_scene::texture t;
+            t.create(st);
+            textures.push_back(t);
             continue;
         }
 
-        typedef std::vector< std::pair<std::string, nya_math::vec4> > material_params;
-        std::vector<material_params> material;
+        if (t != 'ETAM')
+            continue;
+
+        material mat;
+
+        assert(m.get_chunk_size(i) > 0);
 
         nya_memory::tmp_buffer_scoped b(m.get_chunk_size(i));
         m.read_chunk_data(i, b.get_data());
@@ -187,15 +242,6 @@ bool fhm_mesh::load_material(int lod_idx, int material_idx, const char *file_nam
         };
 
         auto header = r.read<mate_header>();
-        if (memcmp(header.sign, "MATE", 4) != 0)
-            return false;
-
-        //printf("MATE %d %d\n", header.groups_count, header.render_groups_count); continue;
-
-        assert(!lods.empty());
-
-        material.resize(header.mat_count);
-        r.seek(header.offset_to_mat_offsets);
 
         struct mat_offset
         {
@@ -204,6 +250,8 @@ bool fhm_mesh::load_material(int lod_idx, int material_idx, const char *file_nam
             uint32_t unknown;
         };
 
+        r.seek(header.offset_to_mat_offsets);
+        mat.params.resize(header.mat_count);
         std::vector<mat_offset> mat_offsets(header.mat_count);
         for (size_t j = 0; j < mat_offsets.size(); ++j)
         {
@@ -231,7 +279,7 @@ bool fhm_mesh::load_material(int lod_idx, int material_idx, const char *file_nam
             assume(header.zero == 0 && header.zero3[0] == 0 && header.zero3[1] == 0 && header.zero3[2] == 0);
             r.skip(header.unknown_count * 24);
 
-            auto &params = material[j];
+            auto &params = mat.params[j];
 
             while (r.get_remained())
             {
@@ -260,9 +308,8 @@ bool fhm_mesh::load_material(int lod_idx, int material_idx, const char *file_nam
             }
         }
 
-        std::vector<uint16_t> render_groups(header.render_groups_count);
-
         r.seek(header.offset_to_render_groups);
+        mat.render_groups.resize(header.render_groups_count);
         for (uint16_t j = 0; j < header.render_groups_count; ++j)
         {
             struct bind
@@ -276,19 +323,13 @@ bool fhm_mesh::load_material(int lod_idx, int material_idx, const char *file_nam
             assert(b.idx == j);
             assume(b.zero[0] == 0 && b.zero[1] == 0 && b.zero[2] == 0);
 
-            render_groups[b.idx] = b.mat_idx;
+            mat.render_groups[b.idx] = b.mat_idx;
         }
 
-        int idx = 0;
         r.seek(header.offset_to_groups);
 
-        auto &l = lods[lod_idx];
-
-        assert(l.params_tex.is_valid());
-        assert(l.params_tex->get_width() == header.render_groups_count);
-
-        unsigned int rg_idx = 0;
-        for (uint16_t j = 0; j < header.groups_count; ++j)
+        mat.groups_offset_count.resize(header.groups_count);
+        for (auto &g: mat.groups_offset_count)
         {
             struct bind
             {
@@ -298,38 +339,14 @@ bool fhm_mesh::load_material(int lod_idx, int material_idx, const char *file_nam
             };
 
             auto b = r.read<bind>();
-            assert(b.render_groups_count + b.render_groups_offset <= render_groups.size());
+            assert(b.render_groups_count + b.render_groups_offset <= mat.render_groups.size());
             assume(b.zero == 0);
 
-            for (int k = 0; k < b.render_groups_count; ++k, ++rg_idx)
-            {
-                auto &m = l.mesh.modify_material(idx++);
-                m.get_default_pass().set_shader(nya_scene::shader(shader));
-
-                auto r = render_groups[b.render_groups_offset + k];
-
-                assert(r < material.size());
-
-                for (auto &p: material[r])
-                {
-                    if (p.first.find("HASH") != std::string::npos)
-                        continue;
-
-                    if (p.first.find("FLAG") != std::string::npos) //ToDo
-                        continue;
-
-                    if (p.first == "NU_ACE_vSpecularParam")
-                        l.set_param(lod::specular_param, rg_idx, p.second);
-                    else if (p.first == "NU_ACE_vIBLParam")
-                        l.set_param(lod::ibl_param, rg_idx, p.second);
-                    else if (p.first == "NU_ACE_vRimLightMtr")
-                        l.set_param(lod::rim_light_mtr, rg_idx, p.second);
-                }
-            }
+            g.first = b.render_groups_offset;
+            g.second = b.render_groups_count;
         }
 
-        l.update_params_tex();
-        ++mat_idx;
+        materials.push_back(mat);
     }
 
     m.close();
@@ -338,7 +355,58 @@ bool fhm_mesh::load_material(int lod_idx, int material_idx, const char *file_nam
 
 //------------------------------------------------------------
 
-bool fhm_mesh::read_mnt(memory_reader &reader, fhm_mesh_load_data &load_data)
+void fhm_mesh::set_material(int lod_idx, const fhm_materials::material &m, const char *shader)
+{
+    assert(!m_lods.empty());
+
+    if (lod_idx < 0 || lod_idx >= get_lods_count())
+        return;
+
+    int idx = 0;
+    auto &l = m_lods[lod_idx];
+    if (!l.mesh.get_groups_count())
+        return;
+
+    assert(l.params_tex.is_valid());
+    assert(l.params_tex->get_width() == m.render_groups.size());
+
+    unsigned int rg_idx = 0;
+    for (const auto &g: m.groups_offset_count)
+    {
+        for (int k = 0; k < g.second; ++k, ++rg_idx)
+        {
+            const auto &r = m.render_groups[g.first + k];
+            const auto &ps = m.params;
+
+            auto &m = l.mesh.modify_material(idx++);
+            m.get_default_pass().set_shader(nya_scene::shader(shader));
+
+            assert(r < ps.size());
+
+            for (auto &p: ps[r])
+            {
+                if (p.first.find("HASH") != std::string::npos)
+                    continue;
+
+                if (p.first.find("FLAG") != std::string::npos) //ToDo
+                    continue;
+
+                if (p.first == "NU_ACE_vSpecularParam")
+                    l.set_param(lod::specular_param, rg_idx, p.second);
+                else if (p.first == "NU_ACE_vIBLParam")
+                    l.set_param(lod::ibl_param, rg_idx, p.second);
+                else if (p.first == "NU_ACE_vRimLightMtr")
+                    l.set_param(lod::rim_light_mtr, rg_idx, p.second);
+            }
+        }
+    }
+
+    l.update_params_tex();
+}
+
+//------------------------------------------------------------
+
+bool fhm_mesh::read_mnt(memory_reader &reader, fhm_mnt &mnt)
 {
     struct mnt_header
     {
@@ -405,7 +473,6 @@ bool fhm_mesh::read_mnt(memory_reader &reader, fhm_mesh_load_data &load_data)
         bones[i].name = reader.read_string();
 
     //printf("mnt\n");
-    fhm_mesh_load_data::mnt mnt;
     for (int i = 0; i < header.bones_count; ++i)
     {
         //printf("%d %s\n", i, bones[i].name.c_str());
@@ -414,14 +481,12 @@ bool fhm_mesh::read_mnt(memory_reader &reader, fhm_mesh_load_data &load_data)
     }
     //printf("\n");
 
-    load_data.skeletons.push_back(mnt);
-
     return true;
 }
 
 //------------------------------------------------------------
 
-bool fhm_mesh::read_mop2(memory_reader &reader, fhm_mesh_load_data &load_data)
+bool fhm_mesh::read_mop2(memory_reader &reader, fhm_mnt &mnt, fhm_mop2 &mop2)
 {
     struct mop2_header
     {
@@ -527,11 +592,6 @@ bool fhm_mesh::read_mop2(memory_reader &reader, fhm_mesh_load_data &load_data)
         std::vector<kfm1_sequence> sequences;
     };
 
-    size_t skeleton_idx = load_data.animations.size(); //ToDo?
-    assert(skeleton_idx < load_data.skeletons.size());
-    auto skeleton = load_data.skeletons[skeleton_idx].skeleton;
-    load_data.animations.resize(load_data.animations.size() + 1);
-
     struct bone
     {
         int parent;
@@ -569,7 +629,7 @@ bool fhm_mesh::read_mop2(memory_reader &reader, fhm_mesh_load_data &load_data)
     assert(basepos_idx>=0);
     assume(basepos_idx == 0);
 
-    std::vector<bone> base(skeleton.get_bones_count());
+    std::vector<bone> base(mnt.skeleton.get_bones_count());
     for (int fi = 0; fi < header.kfm1_count; ++fi)
     {
         const int i = (fi == 0 ? basepos_idx : (fi == basepos_idx ? 0 : fi));
@@ -669,13 +729,17 @@ bool fhm_mesh::read_mop2(memory_reader &reader, fhm_mesh_load_data &load_data)
                 const auto &b = is_bones2 ? kfm1.bones2[j] : kfm1.bones[j];
 
                 const int idx = b.bone_idx;
-                assert(idx < skeleton.get_bones_count());
-                const int aidx = anim.anim.add_bone(skeleton.get_bone_name(idx));
+
+                if (idx >= mnt.skeleton.get_bones_count())
+                    continue;
+
+                assert(idx < mnt.skeleton.get_bones_count());
+                const int aidx = anim.anim.add_bone(mnt.skeleton.get_bone_name(idx));
                 assert(aidx >= 0);
                 const int frame_time = 16;
 
                 if (first_anim)
-                    base[idx].parent = skeleton.get_bone_parent_idx(idx);
+                    base[idx].parent = mnt.skeleton.get_bone_parent_idx(idx);
 
                 bool is_quat = b.unknown2 == 1031;
 
@@ -694,9 +758,7 @@ bool fhm_mesh::read_mop2(memory_reader &reader, fhm_mesh_load_data &load_data)
                         {
                             base[idx].rot.v = value.xyz();
                             base[idx].rot.w = value.w;
-
-                            base[idx].irot.v = -base[idx].rot.v;
-                            base[idx].irot.w = base[idx].rot.w;
+                            base[idx].irot = nya_math::quat::invert(base[idx].rot);
                         }
                         else
                             base[idx].pos = value.xyz();
@@ -704,11 +766,15 @@ bool fhm_mesh::read_mop2(memory_reader &reader, fhm_mesh_load_data &load_data)
                     else
                     {
                         if (is_quat)
-                            anim.anim.add_bone_rot_frame(aidx, l * frame_time, base[idx].irot*nya_math::quat(value.x, value.y, value.z, value.w));
+                        {
+                            auto q = base[idx].irot * nya_math::quat(value.x, value.y, value.z, value.w);
+                            if (q.w < 0)
+                                q = -q;
+                            anim.anim.add_bone_rot_frame(aidx, l * frame_time, q);
+                        }
                         else
                             anim.anim.add_bone_pos_frame(aidx, l * frame_time, value.xyz() - base[idx].pos);
                     }
-
                 }
 
                 if (sequence_reader.get_offset() > last_offset)
@@ -724,22 +790,29 @@ bool fhm_mesh::read_mop2(memory_reader &reader, fhm_mesh_load_data &load_data)
             if (first_anim && k == 0)
             {
                 nya_render::skeleton s;
-                for (int i = 0; i < skeleton.get_bones_count(); ++i)
+                for (int i = 0; i < mnt.skeleton.get_bones_count(); ++i)
                 {
-                    const int b = s.add_bone(skeleton.get_bone_name(i), base[i].get_pos(base), base[i].get_rot(base), skeleton.get_bone_parent_idx(i), true);
+                    const int b = s.add_bone(mnt.skeleton.get_bone_name(i), base[i].get_pos(base), base[i].get_rot(base),
+                                             mnt.skeleton.get_bone_parent_idx(i), true);
                     assert(i == b);
                 }
-                
-                load_data.skeletons[skeleton_idx].skeleton = s;
+
+                mnt.skeleton = s;
             }
             
             //printf("    frame %d bones %d\n", k, int(f.bones.size()));
         }
 
         if (!first_anim)
-            load_data.animations.back().animations[kfm1.name].create(anim);
+            mop2.animations[kfm1.name].create(anim);
 
         //printf("duration %.2fs\n", anim.anim.get_duration()/1000.0f);
+    }
+
+    for (auto &a: mop2.animations)
+    {
+        a.second.set_speed(0.0f);
+        a.second.set_loop(false);
     }
 
     return true;
@@ -747,8 +820,10 @@ bool fhm_mesh::read_mop2(memory_reader &reader, fhm_mesh_load_data &load_data)
 
 //------------------------------------------------------------
 
-bool fhm_mesh::read_ndxr(memory_reader &reader, fhm_mesh_load_data &load_data) //ToDo: add ToDo: add materials, reduce groups to materials count
+bool fhm_mesh::read_ndxr(memory_reader &reader, const fhm_mnt &mnt, const fhm_mop2 &mop2, lod &l)
 {
+    //ToDo: add ToDo: add materials, reduce groups to materials count
+
     struct ndxr_header
     {
         char sign[4];
@@ -955,9 +1030,6 @@ bool fhm_mesh::read_ndxr(memory_reader &reader, fhm_mesh_load_data &load_data) /
         }
     }
 
-    lods.resize(lods.size() + 1);
-    lod &l = lods.back();
-
     nya_scene::shared_mesh mesh;
 
     nya_scene::material mat;
@@ -967,18 +1039,20 @@ bool fhm_mesh::read_ndxr(memory_reader &reader, fhm_mesh_load_data &load_data) /
     p.get_state().set_cull_face(true, nya_render::cull_face::ccw);
     p.get_state().depth_comparsion = nya_render::depth_test::not_greater;
 
-    if (load_data.skeletons.size() == load_data.ndxr_count)
-        mesh.skeleton = load_data.skeletons[lods.size() - 1].skeleton;
+    mesh.skeleton = mnt.skeleton;
 
     struct vert
     {
         float pos[3];
         float tc[2];
-        float bone;
+        float param_tc;
         ushort normal[4]; //half float
         ushort tangent[4];
         ushort bitangent[4];
-        float param_tc;
+
+        //ToDo:
+        float bones[4];
+        float weights[4];
     };
 
     std::vector<vert> verts;
@@ -1034,7 +1108,13 @@ bool fhm_mesh::read_ndxr(memory_reader &reader, fhm_mesh_load_data &load_data) /
 
             auto &t = tmp_groups[total_rgf_idx];
 
+            //printf("%s\n", gf.name.c_str());
+
             t.opaque = gf.name.find("OBJ_O") != std::string::npos; //really?
+
+            //ToDo: correct apaque/alpha instead of guessing
+            if (gf.name.find("mrot0") || gf.name.find("auta_"))
+                t.opaque = false;
 
             t.day = gf.name.find("dayt_") != std::string::npos;
             t.night = gf.name.find("nigt_") != std::string::npos;
@@ -1077,16 +1157,49 @@ bool fhm_mesh::read_ndxr(memory_reader &reader, fhm_mesh_load_data &load_data) /
             const float bone_fidx = (mesh.skeleton.get_bones_count() <= 0 || gf.header.bone_idx < 0) ? -1.0:
                                      float(gf.header.bone_idx + 0.5f) / 1024;
             */
-            const float bone_fidx = (mesh.skeleton.get_bones_count() <= 0 || gf.header.bone_idx < 0) ? -1.0 : float(gf.header.bone_idx);
+            const float bone_fidx = (mesh.skeleton.get_bones_count() <= 0 || gf.header.bone_idx < 0) ? 0.0f : float(gf.header.bone_idx);
+            const float bone_weight = (mesh.skeleton.get_bones_count() <= 0 || gf.header.bone_idx < 0) ? 0.0f : 1.0f;
 
-            for (int i = 0; i < rgf.header.vcount; ++i)
+            for (int i = first_index; i < first_index + rgf.header.vcount; ++i)
             {
-                verts[i + first_index].bone = bone_fidx;
-                verts[i + first_index].param_tc = ptc;
+                verts[i].tc[0] = verts[i].tc[1] = 0.0f;
+                verts[i].param_tc = ptc;
+                verts[i].bones[0] = bone_fidx;
+                verts[i].weights[0] = bone_weight;
+                for (int j = 1; j < 4; ++j)
+                {
+                    verts[i].bones[j] = 0;
+                    verts[i].weights[j] = 0.0f;
+                }
+
+                for (int j = 0; j < 4; ++j)
+                {
+                    verts[i].normal[j] = 0;
+                    verts[i].tangent[j] = 0;
+                    verts[i].bitangent[j] = 0;
+                }
             }
 
             switch(rgf.header.vertex_format)
             {
+                case 4102:
+                    for (int i = 0; i < rgf.header.vcount; ++i)
+                    {
+                        memcpy(verts[i + first_index].pos, &ndxr_verts[i * 6], sizeof(verts[0].pos));
+                        memcpy(verts[i + first_index].tc, &ndxr_verts[i * 6 + 4], sizeof(verts[0].tc));
+                        //ToDo
+                    }
+                    break;
+
+                case 4103:
+                    for (int i = 0; i < rgf.header.vcount; ++i)
+                    {
+                        memcpy(verts[i + first_index].pos, &ndxr_verts[i * 10], sizeof(verts[0].pos));
+                        memcpy(verts[i + first_index].tc, &ndxr_verts[i * 10 + 8], sizeof(verts[0].tc));
+                        //ToDo
+                    }
+                    break;
+
                 case 4358:
                     for (int i = 0; i < rgf.header.vcount; ++i)
                     {
@@ -1108,16 +1221,7 @@ bool fhm_mesh::read_ndxr(memory_reader &reader, fhm_mesh_load_data &load_data) /
                         memcpy(verts[i + first_index].bitangent, &ndxr_verts[i * 11 + 5], sizeof(verts[0].bitangent));
                     }
                     break;
-/*
-                case 4102:
-                    for (int i = 0; i < rgf.header.vcount; ++i)
-                    {
-                        memcpy(verts[i + first_index].pos, &ndxr_verts[i * 6], sizeof(verts[0].pos));
-                        memcpy(verts[i + first_index].tc, &ndxr_verts[i * 6 + debug_variable::get()], sizeof(verts[0].tc));
-                        //ToDo
-                    }
-                    break;
-*/
+
                 case 8454:
                     for (int i = 0; i < rgf.header.vcount; ++i)
                     {
@@ -1205,19 +1309,21 @@ bool fhm_mesh::read_ndxr(memory_reader &reader, fhm_mesh_load_data &load_data) /
                     reader.seek(header.offset_to_indices + 48 + header.indices_buffer_size + header.vertices_buffer_size + add_vertex_offset);
                     const float *ndxr_verts = (float *)reader.get_data();
 
-                    //print_data(reader,reader.get_offset(),512);
-
-                    //ToDo: skining
-
                     switch (rgf.header.vertex_format)
                     {
                         case 4112:
                             for (int i = 0; i < rgf.header.vcount; ++i)
                             {
                                 memcpy(verts[i + first_index].pos, &ndxr_verts[i * 12], sizeof(verts[0].pos));
-                                float3_to_half3(&ndxr_verts[i * 12 + 3], verts[i + first_index].normal);
                                 //ToDo
+
+                                for (int j = 0; j < 4; ++j)
+                                {
+                                    verts[i + first_index].bones[j] = *(int *)&ndxr_verts[i * 12 + 4 + j];
+                                    verts[i + first_index].weights[j] = ndxr_verts[i * 12 + 8 + j];
+                                }
                             }
+                            //print_data(reader,reader.get_offset(),512);
                             add_vertex_offset += rgf.header.vcount * 12 * 4;
                             break;
 
@@ -1225,8 +1331,13 @@ bool fhm_mesh::read_ndxr(memory_reader &reader, fhm_mesh_load_data &load_data) /
                             for (int i = 0; i < rgf.header.vcount; ++i)
                             {
                                 memcpy(verts[i + first_index].pos, &ndxr_verts[i * 16], sizeof(verts[0].pos));
-                                float3_to_half3(&ndxr_verts[i * 16 + 3], verts[i + first_index].normal);
                                 //ToDo
+
+                                for (int j = 0; j < 4; ++j)
+                                {
+                                    verts[i + first_index].bones[j] = *(int *)&ndxr_verts[i * 16 + 8 + j];
+                                    verts[i + first_index].weights[j] = ndxr_verts[i * 16 + 12 + j];
+                                }
                             }
                             //print_data(reader,reader.get_offset(),512);
                             add_vertex_offset += rgf.header.vcount * 16 * 4;
@@ -1242,12 +1353,13 @@ bool fhm_mesh::read_ndxr(memory_reader &reader, fhm_mesh_load_data &load_data) /
                                 //float3_to_half3(&ndxr_verts[i * 24 + 6], verts[i + first_index].bitangent);
                                 //ToDo
 
-                                //verts[i + first_index].bone = float(*(int *)&ndxr_verts[i * 24 + 16]); //ToDo: correct skining, 4 bones 4 weights
-
-                                //printf("%f %f\n", verts[i + first_index].bone, ndxr_verts[i * 24 + 20]);
+                                for (int j = 0; j < 4; ++j)
+                                {
+                                    verts[i + first_index].bones[j] = *(int *)&ndxr_verts[i * 24 + 16 + j];
+                                    verts[i + first_index].weights[j] = ndxr_verts[i * 24 + 20 + j];
+                                }
                             }
                             add_vertex_offset += rgf.header.vcount * 24 * 4;
-
                             break;
                     }
                 }
@@ -1274,6 +1386,13 @@ bool fhm_mesh::read_ndxr(memory_reader &reader, fhm_mesh_load_data &load_data) /
                     //print_data(reader,reader.get_offset(),512);
                     //print_data(reader,reader.get_offset(), header.vertices_buffer_size);
                     continue;
+            }
+
+            if (gf.header.bone_idx > 0)
+            {
+                for (int i = first_index; i < first_index + rgf.header.vcount; ++i)
+                    *(nya_math::vec3 *)&verts[i].pos = mesh.skeleton.get_bone_rot(gf.header.bone_idx).rotate(*(nya_math::vec3 *)&verts[i].pos)
+                                                     + mesh.skeleton.get_bone_pos(gf.header.bone_idx);
             }
 
             reader.seek(header.offset_to_indices + 48 + rgf.header.ibuf_offset); //rgf.header.icount
@@ -1442,51 +1561,48 @@ bool fhm_mesh::read_ndxr(memory_reader &reader, fhm_mesh_load_data &load_data) /
     mesh.materials = regroup_materials;
 //#endif
 
-    mesh.vbo.set_tc(0, sizeof(verts[0].pos), 3);
-    mesh.vbo.set_normals(sizeof(verts[0].pos) + sizeof(verts[0].tc) + sizeof(verts[0].bone), nya_render::vbo::float16);
-    mesh.vbo.set_tc(1, sizeof(verts[0].pos) + sizeof(verts[0].tc) + sizeof(verts[0].bone) + sizeof(verts[0].normal), 3, nya_render::vbo::float16);
-    mesh.vbo.set_tc(2, sizeof(verts[0].pos) + sizeof(verts[0].tc) + sizeof(verts[0].bone) + sizeof(verts[0].normal) * 2, 3, nya_render::vbo::float16);
-    mesh.vbo.set_tc(3, sizeof(verts[0].pos) + sizeof(verts[0].tc) + sizeof(verts[0].bone) + sizeof(verts[0].normal) * 3, 1, nya_render::vbo::float32);
+#define off(st, m) uint((size_t)(&((st *)0)->m))
+
+    mesh.vbo.set_tc(0, off(vert, tc), 3);
+    mesh.vbo.set_normals(off(vert, normal), nya_render::vbo::float16);
+    mesh.vbo.set_tc(1, off(vert, tangent), 3, nya_render::vbo::float16);
+    mesh.vbo.set_tc(2, off(vert, bitangent), 3, nya_render::vbo::float16);
+    mesh.vbo.set_tc(3, off(vert, bones), 4, nya_render::vbo::float32);
+    mesh.vbo.set_tc(4, off(vert, weights), 4, nya_render::vbo::float32);
 
     mesh.vbo.set_vertex_data(&verts[0], sizeof(verts[0]), uint(verts.size()));
 
     if(use_indices4b)
-        mesh.vbo.set_index_data(&regroup_indices4b[0], nya_render::vbo::index4b, uint(indices4b.size()));
+        mesh.vbo.set_index_data(&regroup_indices4b[0], nya_render::vbo::index4b, uint(regroup_indices4b.size()));
     else
-        mesh.vbo.set_index_data(&regroup_indices2b[0], nya_render::vbo::index2b, uint(indices2b.size()));
+        mesh.vbo.set_index_data(&regroup_indices2b[0], nya_render::vbo::index2b, uint(regroup_indices2b.size()));
 
     l.mesh.create(mesh);
 
-    if (load_data.animations.size() == load_data.ndxr_count)
+    //assert(!anims.empty());
+
+    int layer = 0;
+    for (auto &a: mop2.animations)
     {
-        auto anims = load_data.animations[lods.size() - 1].animations;
-        //assert(!anims.empty());
+        //assume(a.first == "basepose" || a.first.length() == 4);
+        assert(a.first != "base");
 
-        int layer = 0;
-        for (auto &a: anims)
-        {
-            //assume(a.first == "basepose" || a.first.length() == 4);
-            assert(a.first != "base");
+        union { uint u; char c[4]; } hash_id;
+        for (int i = 0; i < 4; ++i) hash_id.c[i] = a.first[3 - i];
 
-            union { uint u; char c[4]; } hash_id;
-            for (int i = 0; i < 4; ++i) hash_id.c[i] = a.first[3 - i];
+        //if (hash_id.u == 'swp1' || hash_id.u == 'swp2') continue; //ToDo
 
-            //if (hash_id.u == 'swp1' || hash_id.u == 'swp2') continue; //ToDo
+        //printf("anim %d %s\n", layer, a.first.c_str());
 
-            auto &la = l.anims[hash_id.u];
-            la.layer = layer;
-            la.duration = a.second.get_duration();
-            la.inv_duration = a.second.get_duration() > 0 ? 1.0f / a.second.get_duration() : 0.0f;
-            a.second.set_speed(0.0f);
-            a.second.set_loop(false);
-            l.mesh.set_anim(a.second, layer++);
-
-            //printf("lod %d anim %s\n", (int)lods.size() - 1,a.first.c_str());
-        }
-        
-        l.mesh.update(0);
+        auto &la = l.anims[hash_id.u];
+        la.layer = layer;
+        la.duration = a.second.get_duration();
+        la.inv_duration = a.second.get_duration() > 0 ? 1.0f / a.second.get_duration() : 0.0f;
+        l.mesh.set_anim(a.second, layer++);
     }
-    
+
+    l.mesh.update(0);
+
     return true;
 }
 
@@ -1494,15 +1610,14 @@ bool fhm_mesh::read_ndxr(memory_reader &reader, fhm_mesh_load_data &load_data) /
 
 void fhm_mesh::draw(int lod_idx)
 {
-    if (lod_idx < 0 || lod_idx >= lods.size())
+    if (lod_idx < 0 || lod_idx >= m_lods.size())
         return;
 
-    lod &l = lods[lod_idx];
+    lod &l = m_lods[lod_idx];
 
     l.mesh.set_pos(m_pos);
     l.mesh.set_rot(m_rot);
     l.mesh.draw();
-
 /*
 if (lod_idx == 0)
 {
@@ -1521,7 +1636,7 @@ if (lod_idx == 0)
     if (last_dvar != debug_variable::get())
         printf("bone %d %s\n", debug_variable::get(), l.mesh.get_skeleton().get_bone_name(last_dvar = debug_variable::get()));
 
-    d.add_point(l.mesh.get_skeleton().get_bone_pos(debug_variable::get()), nya_math::vec4(0.0,1.0,0.0,1.0));
+    d.add_point(l.mesh.get_skeleton().get_bone_pos(debug_variable::get()), nya_math::vec4(0.0,1.0,0.0,0.5));
     d.draw();
 }
 */
@@ -1531,7 +1646,7 @@ if (lod_idx == 0)
 
 void fhm_mesh::update(int dt)
 {
-    for (auto &l: lods)
+    for (auto &l: m_lods)
     {
         l.mesh.set_pos(m_pos);
         l.mesh.set_rot(m_rot);
@@ -1543,10 +1658,10 @@ void fhm_mesh::update(int dt)
 
 void fhm_mesh::set_anim_speed(int lod_idx, unsigned int anim_hash_id, float speed)
 {
-    if (lod_idx < 0 || lod_idx >= lods.size())
+    if (lod_idx < 0 || lod_idx >= m_lods.size())
         return;
 
-    auto &l = lods[lod_idx];
+    auto &l = m_lods[lod_idx];
     auto a = l.anims.find(anim_hash_id);
     if (a == l.anims.end())
         return;
@@ -1560,12 +1675,31 @@ void fhm_mesh::set_anim_speed(int lod_idx, unsigned int anim_hash_id, float spee
 
 //------------------------------------------------------------
 
+void fhm_mesh::set_anim_weight(int lod_idx, unsigned int anim_hash_id, float weight)
+{
+    if (lod_idx < 0 || lod_idx >= m_lods.size())
+        return;
+
+    auto &l = m_lods[lod_idx];
+    auto a = l.anims.find(anim_hash_id);
+    if (a == l.anims.end())
+        return;
+
+    auto ma = l.mesh.get_anim(a->second.layer);
+    if (!ma.is_valid())
+        return;
+
+    ma->set_weight(weight);
+}
+
+//------------------------------------------------------------
+
 float fhm_mesh::get_relative_anim_time(int lod_idx, unsigned int anim_hash_id)
 {
-    if (lod_idx < 0 || lod_idx >= lods.size())
+    if (lod_idx < 0 || lod_idx >= m_lods.size())
         return 0.0f;
 
-    auto &l = lods[lod_idx];
+    auto &l = m_lods[lod_idx];
     auto a = l.anims.find(anim_hash_id);
     if (a == l.anims.end())
         return 0.0f;
@@ -1577,10 +1711,10 @@ float fhm_mesh::get_relative_anim_time(int lod_idx, unsigned int anim_hash_id)
 
 void fhm_mesh::set_relative_anim_time(int lod_idx, unsigned int anim_hash_id, float time)
 {
-    if (lod_idx < 0 || lod_idx >= lods.size())
+    if (lod_idx < 0 || lod_idx >= m_lods.size())
         return;
 
-    auto &l = lods[lod_idx];
+    auto &l = m_lods[lod_idx];
     auto a = l.anims.find(anim_hash_id);
     if (a == l.anims.end())
         return;
@@ -1592,10 +1726,10 @@ void fhm_mesh::set_relative_anim_time(int lod_idx, unsigned int anim_hash_id, fl
 
 bool fhm_mesh::has_anim(int lod_idx, unsigned int anim_hash_id)
 {
-    if (lod_idx < 0 || lod_idx >= lods.size())
+    if (lod_idx < 0 || lod_idx >= m_lods.size())
         return false;
 
-    return lods[lod_idx].anims.find(anim_hash_id) != lods[lod_idx].anims.end();
+    return m_lods[lod_idx].anims.find(anim_hash_id) != m_lods[lod_idx].anims.end();
 }
 
 //------------------------------------------------------------

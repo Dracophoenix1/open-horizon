@@ -6,7 +6,6 @@
 #include "containers/fhm.h"
 #include "renderer/shared.h"
 #include <algorithm>
-#include "util/half.h"
 #include "render/platform_specific_gl.h"
 
 #ifdef min
@@ -74,7 +73,12 @@ void render::init()
     m_lines_mesh.set_vertex_data(line_verts, sizeof(line_verts[0]), elements_per_batch);
     m_lines_mesh.set_vertices(0, 2);
     m_lines_mesh.set_tc(0, 2*4, 3);
-    m_lines_mesh.set_element_type(nya_render::vbo::line_strip);
+    m_lines_mesh.set_element_type(nya_render::vbo::lines);
+
+    m_lines_loop_mesh.set_vertex_data(line_verts, sizeof(line_verts[0]), elements_per_batch);
+    m_lines_loop_mesh.set_vertices(0, 2);
+    m_lines_loop_mesh.set_tc(0, 2*4, 3);
+    m_lines_loop_mesh.set_element_type(nya_render::vbo::line_strip);
 
     auto &pass = m_material.get_pass(m_material.add_pass(nya_scene::material::default_pass));
     pass.set_shader(nya_scene::shader("shaders/ui.nsh"));
@@ -146,7 +150,7 @@ void render::draw(const std::vector<rect_pair> &elements, const nya_scene::textu
 
 //------------------------------------------------------------
 
-void render::draw(const std::vector<nya_math::vec2> &elements, const nya_math::vec4 &color, const transform &t) const
+void render::draw(const std::vector<nya_math::vec2> &elements, const nya_math::vec4 &color, const transform &t, bool loop) const
 {
     if (elements.empty())
         return;
@@ -174,9 +178,18 @@ void render::draw(const std::vector<nya_math::vec2> &elements, const nya_math::v
         }
 
         m_material.internal().set(nya_scene::material::default_pass);
-        m_lines_mesh.bind();
-        m_lines_mesh.draw((unsigned int)count);
-        m_lines_mesh.unbind();
+        if (loop)
+        {
+            m_lines_loop_mesh.bind();
+            m_lines_loop_mesh.draw((unsigned int)count);
+            m_lines_loop_mesh.unbind();
+        }
+        else
+        {
+            m_lines_mesh.bind();
+            m_lines_mesh.draw((unsigned int)count);
+            m_lines_mesh.unbind();
+        }
         m_material.internal().unset();
     }
 
@@ -382,6 +395,38 @@ int fonts::draw_text(const render &r, const wchar_t *text, const char *font_name
 
 //------------------------------------------------------------
 
+int fonts::get_text_width(const wchar_t *text, const char *font_name) const
+{
+    if(!text || !font_name)
+        return 0;
+
+    const auto f = std::find_if(m_fonts.begin(), m_fonts.end(), [font_name](const font &fnt) { return fnt.name == font_name; });
+    if (f == m_fonts.end())
+        return 0;
+
+    int width = 0;
+    for (const wchar_t *c = text; *c; ++c)
+    {
+        rect_pair e;
+        auto fc = f->chars.find(*c);
+        if (fc == f->chars.end())
+            continue;
+
+        width += fc->second.xadvance;
+
+        kern_key kk;
+        kk.c[0] = *c;
+        kk.c[1] = *(c+1);
+        auto k = f->kerning.find(kk.key);
+        if (k != f->kerning.end())
+            width += k->second;
+    }
+
+    return width;
+}
+
+//------------------------------------------------------------
+
 bool tiles::load(const char *name)
 {
     fhm_file m;
@@ -575,7 +620,7 @@ bool tiles::load(const char *name)
             continue;
 
         char *c = (char *)&t;
-        printf("%c%c%c%c %d %d %d %d size %ld\n",c[3],c[2],c[1],c[0],c[3],c[2],c[1],c[0],m.get_chunk_size(i));
+        printf("%c%c%c%c %d %d %d %d size %d\n",c[3],c[2],c[1],c[0],c[3],c[2],c[1],c[0],m.get_chunk_size(i));
         //continue;
 
         print_data(reader);
@@ -597,11 +642,12 @@ int tiles::get_id(int idx)
 
 //------------------------------------------------------------
 
-void tiles::draw(const render &r, int id, int x, int y, const nya_math::vec4 &color, float yaw)
+void tiles::draw(const render &r, int id, int x, int y, const nya_math::vec4 &color, float yaw, float scale)
 {
     render::transform t;
     t.x = float(x), t.y = float(y);
     t.yaw = yaw;
+    t.sx = t.sy = scale;
 
     auto it = m_hud_map.find(id);
     if (it == m_hud_map.end())

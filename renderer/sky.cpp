@@ -20,25 +20,6 @@ public:
         if (!r.get_data())
             return false;
 
-        struct sph_data
-        {
-            float radius;
-            float height;
-            uint32_t zero[2];
-
-            color colors[24];
-            uint32_t zero2[2];
-            color colors2[3];
-            uint32_t zero3;
-
-            //color colors[30];
-
-            float k[10];
-
-        } data[2];
-
-        //colors count is 40 ? and coeffs is char and 40 too?
-
         assert(r.get_size() == sizeof(data));
 
         memcpy(&data, r.get_data(), r.get_size());
@@ -46,42 +27,104 @@ public:
         for (size_t i = 0; i < sizeof(data)/sizeof(uint32_t); ++i)
             ((uint32_t *)&data)[i] = swap_bytes(((uint32_t *)&data)[i]);
 
-        for (auto &d: data)
-        {
-            assume(d.zero[0] == 0 && d.zero[1] == 0);
-            //assume(d.zero2[0] == 0 && d.zero2[1] == 0);
-            //assume(d.zero3 == 0);
-
-            for (auto &c: d.colors) assume(c.unused == 0);
-            //for (auto &c: d.colors2) assume(c.a == 0);
-        }
-
         r.free();
         return true;
     }
 
-private:
     struct color { unsigned char r, g, b, unused; };
 
-    color mix(const color &c0, const color &c1, float k)
+    struct sph_data
+    {
+        float radius;
+        float height;
+        uint32_t zero[2];
+        color colors[30];
+        float k[10];
+
+    };
+
+    sph_data data[2];
+
+    static color mix(const color &c0, const color &c1, float k)
     {
         color out;
-        out.r = c0.r + k * (c1.r - c0.r);
-        out.g = c0.g + k * (c1.g - c0.g);
-        out.b = c0.b + k * (c1.b - c0.b);
+        out.r = (unsigned char)nya_math::clamp(float(c0.r) + k * (float(c1.r) - float(c0.r)), 0.0f, 255.0f);
+        out.g = (unsigned char)nya_math::clamp(float(c0.g) + k * (float(c1.g) - float(c0.g)), 0.0f, 255.0f);
+        out.b = (unsigned char)nya_math::clamp(float(c0.b) + k * (float(c1.b) - float(c0.b)), 0.0f, 255.0f);
         return out;
     }
+
+    struct color_table
+    {
+        color colors[58];
+        color fog_color;
+
+        color_table(const sph_data &d);
+    };
 };
+
+//------------------------------------------------------------
+
+sph::color_table::color_table(const sph_data &d)
+{
+    fog_color = mix(d.colors[10], d.colors[11], 0.87f);
+
+    memset(colors, 0, sizeof(colors));
+
+    colors[0] = colors[1] = d.colors[8];
+    colors[16] = colors[17] = d.colors[9];
+    int remap[] = { 20, 24, 28, 30, 21, 25, 29, 31 };
+    for (size_t i = 0; i < sizeof(remap)/sizeof(remap[0]); ++i)
+        colors[remap[i]] = d.colors[i];
+
+    for (size_t i = 38; i < sizeof(colors)/sizeof(color); ++i)
+        colors[i] = fog_color;
+
+    for (int i = 1; i < 8; ++i)
+    {
+        static const float ks[] = { 0.980785f, 0.923880f, 0.831470f, 0.707107f, 0.555570f, 0.382683f, 0.195090f };
+        const float k = ks[i-1];
+        colors[i*2] = mix(colors[16], colors[0], k);
+        colors[i*2+1] = mix(colors[17], colors[1], k);
+    }
+
+    colors[18] = mix(colors[16], colors[20], 0.5f);
+    colors[19] = mix(colors[17], colors[21], 0.5f);
+
+    colors[22] = mix(colors[20], colors[24], 0.5);
+    colors[23] = mix(colors[21], colors[25], 0.5);
+
+    for(int i = 1; i < 3; ++i)
+    {
+        const float k = i * 0.5f;
+        colors[24 + i*2] = mix(colors[24], colors[28], k);
+        colors[25 + i*2] = mix(colors[25], colors[29], k);
+    }
+
+    for (int i = 1; i < 5; ++i)
+    {
+        const float k = i * 0.25f;
+        colors[30 + i*2] = mix(colors[30], colors[38], k);
+        colors[31 + i*2] = mix(colors[31], colors[39], k);
+    }
+}
+
+//------------------------------------------------------------
+
+static const float hdr_k = 1.2995f / 255.0f;
 
 //------------------------------------------------------------
 
 struct solid_sphere
 {
-    std::vector<nya_math::vec3> vertices;
+    struct vert { nya_math::vec3 pos, color; };
+    std::vector<vert> vertices;
     std::vector<unsigned short> indices;
 
-    solid_sphere(float radius, unsigned int rings, unsigned int sectors)
+    solid_sphere(float radius, const sph::color_table &ct)
     {
+        const unsigned int rings = 29, sectors = 32;
+
         const float ir = 1.0f/(float)(rings-1);
         const float is = 1.0f/(float)(sectors-1);
 
@@ -89,10 +132,18 @@ struct solid_sphere
         auto v = vertices.begin();
         for (int r = 0; r < rings; r++) for (int s = 0; s < sectors; s++)
         {
-            float sr = radius * sin( nya_math::constants::pi * r * ir );
-            v->x = cos(2*nya_math::constants::pi * s * is) * sr;
-            v->y = radius * sin( -nya_math::constants::pi_2 + nya_math::constants::pi * r * ir );
-            v->z = sin(2*nya_math::constants::pi * s * is) * sr;
+            const float sr = radius * sin( nya_math::constants::pi * r * ir );
+            v->pos.x = sin(2*nya_math::constants::pi * s * is) * sr;
+            v->pos.y = -radius * sin( -nya_math::constants::pi_2 + nya_math::constants::pi * r * ir );
+            v->pos.z = cos(2*nya_math::constants::pi * s * is) * sr;
+
+            const float k = (s < sectors / 2 ? s : sectors - s - 1) / float(sectors / 2 - 1);
+            const auto c = sph::mix(ct.colors[r*2], ct.colors[r*2 + 1], k);
+
+            v->color.x = c.r * hdr_k;
+            v->color.y = c.g * hdr_k;
+            v->color.z = c.b * hdr_k;
+
             ++v;
         }
 
@@ -113,25 +164,28 @@ struct solid_sphere
 
 //------------------------------------------------------------
 
-bool sky_mesh::load(const char *name, const location_params &params)
+bool sky_mesh::load(const char *name)
 {
-    solid_sphere s(20000.0,32,24);
+    renderer::sph t;
+    t.load((std::string("Map/sph_") + name + ".sph").c_str());
 
-    m_mesh.set_vertex_data(&s.vertices[0], sizeof(float)*3, (unsigned int)s.vertices.size());
+    renderer::sph::color_table ct(t.data[0]);
+
+    solid_sphere s(20000.0, ct);
+
+    m_mesh.set_vertex_data(&s.vertices[0], sizeof(solid_sphere::vert), (unsigned int)s.vertices.size());
+    m_mesh.set_colors(sizeof(solid_sphere::vert::pos), 3);
     m_mesh.set_index_data(&s.indices[0], nya_render::vbo::index2b, (unsigned int)s.indices.size());
-
-    //ToDo: load from Map/sph_*.sph
-    auto env = shared::get_texture(shared::load_texture((std::string("Map/envmap_") + name + ".nut").c_str()));
 
     auto dithering = shared::get_texture(shared::load_texture("PostProcess/dithering.nut"));
 
     m_material.get_default_pass().set_shader(nya_scene::shader("shaders/sky.nsh"));
     m_material.get_default_pass().get_state().zwrite = false;
-    m_material.set_texture("diffuse", env);
     m_material.set_texture("dithering", dithering);
 
-    nya_math::vec3 about_fog_color = params.sky.low.ambient * params.sky.low.skysphere_intensity; //ToDo
-    m_material.set_param(m_material.get_param_idx("fog color"), about_fog_color);
+    m_fog_color.x = ct.fog_color.r * hdr_k;
+    m_fog_color.y = ct.fog_color.g * hdr_k;
+    m_fog_color.z = ct.fog_color.b * hdr_k;
 
     return true;
 }
@@ -158,6 +212,13 @@ void sky_mesh::release()
 {
     m_mesh.release();
     m_material.unload();
+}
+
+//------------------------------------------------------------
+
+nya_math::vec3 sky_mesh::get_fog_color()
+{
+    return m_fog_color;
 }
 
 //------------------------------------------------------------

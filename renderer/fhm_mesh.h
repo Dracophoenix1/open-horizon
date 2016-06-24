@@ -6,11 +6,35 @@
 
 #include "scene/mesh.h"
 #include <assert.h>
+#include <stdint.h>
 
 //------------------------------------------------------------
 
 class memory_reader;
 struct fhm_mesh_load_data;
+struct fhm_mnt;
+struct fhm_mop2;
+
+//------------------------------------------------------------
+
+struct fhm_materials
+{
+public:
+    bool load(const char *file_name);
+
+public:
+    typedef std::vector< std::pair<std::string, nya_math::vec4> > material_params;
+
+    struct material
+    {
+        std::vector<material_params> params;
+        std::vector<uint16_t> render_groups;
+        std::vector<std::pair<uint16_t,uint16_t> > groups_offset_count;
+    };
+
+    std::vector<material> materials;
+    std::vector<nya_scene::texture> textures;
+};
 
 //------------------------------------------------------------
 
@@ -18,7 +42,6 @@ class fhm_mesh
 {
 public:
     bool load(const char *file_name);
-    bool load_material(int lod_idx, int material_idx, const char *file_name, const char *shader);
 
 public:
     void draw(int lod_idx);
@@ -33,6 +56,9 @@ public:
     float get_relative_anim_time(int lod_idx, unsigned int anim_hash_id);
     void set_relative_anim_time(int lod_idx, unsigned int anim_hash_id, float time);
     void set_anim_speed(int lod_idx, unsigned int anim_hash_id, float speed);
+    void set_anim_weight(int lod_idx, unsigned int anim_hash_id, float weight);
+
+    void set_material(int lod_idx, const fhm_materials::material &m, const char *shader);
 
     void set_texture(int lod_idx, const char *semantics, const nya_scene::texture &tex);
     void set_texture(int lod_idx, const char *semantics, const char *file_name)
@@ -40,13 +66,14 @@ public:
         set_texture(lod_idx,semantics,nya_scene::texture(file_name));
     }
 
-    int get_lods_count() const { return (int)lods.size(); }
-    nya_scene::mesh &get_mesh(int lod_idx) { assert(lod_idx>=0 && lod_idx < lods.size()); return lods[lod_idx].mesh; }
+    int get_lods_count() const { return (int)m_lods.size(); }
+    nya_scene::mesh &get_mesh(int lod_idx) { assert(lod_idx>=0 && lod_idx < (int)m_lods.size()); return m_lods[lod_idx].mesh; }
 
 protected:
-    bool read_mnt(memory_reader &reader, fhm_mesh_load_data &load_data);
-    bool read_mop2(memory_reader &reader, fhm_mesh_load_data &load_data);
-    bool read_ndxr(memory_reader &reader, fhm_mesh_load_data &load_data);
+    bool read_mnt(memory_reader &reader, fhm_mnt &mnt);
+    bool read_mop2(memory_reader &reader, fhm_mnt &mnt, fhm_mop2 &mop2);
+    struct lod;
+    bool read_ndxr(memory_reader &reader, const fhm_mnt &mnt, const fhm_mop2 &mop2, lod &l);
 
 protected:
     typedef unsigned int uint;
@@ -97,7 +124,7 @@ protected:
         std::map<uint, anim> anims;
     };
 
-    std::vector<lod> lods;
+    std::vector<lod> m_lods;
 
 protected:
     nya_math::vec3 m_pos;

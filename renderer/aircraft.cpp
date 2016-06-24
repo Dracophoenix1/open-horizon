@@ -3,7 +3,7 @@
 //
 
 #include "aircraft.h"
-#include "resources/resources.h"
+#include "extensions/zip_resources_provider.h"
 #include "memory/tmp_buffer.h"
 #include "render/screen_quad.h"
 #include "render/fbo.h"
@@ -12,6 +12,7 @@
 #include "containers/dpl.h"
 #include "renderer/shared.h"
 #include "renderer/scene.h"
+#include "util/xml.h"
 #include <stdint.h>
 
 namespace renderer
@@ -21,9 +22,10 @@ namespace renderer
 class color_baker
 {
 public:
-    void set_base(const char *name) { m_mat.set_texture("base", nya_scene::texture(name)); }
-    void set_colx(const char *name) { m_mat.set_texture("colx", nya_scene::texture(name)); }
-    void set_coly(const char *name) { m_mat.set_texture("coly", nya_scene::texture(name)); }
+    void set_base(const nya_scene::texture &tex) { m_mat.set_texture("base", tex); }
+    void set_colx(const nya_scene::texture &tex) { m_mat.set_texture("colx", tex); }
+    void set_coly(const nya_scene::texture &tex) { m_mat.set_texture("coly", tex); }
+    void set_decal(const nya_scene::texture &tex) { m_mat.set_texture("decal", tex); }
 
     void set_color(unsigned int idx, const nya_math::vec3 &color)
     {
@@ -38,9 +40,16 @@ public:
 
     nya_scene::texture bake()
     {
-        auto tp=m_mat.get_texture("base");
+        auto tp = m_mat.get_texture("base");
         if (!tp.is_valid())
             return nya_scene::texture();
+
+        if (!m_mat.get_texture("decal").is_valid())
+        {
+            nya_scene::texture tex;
+            tex.build("\0\0\0\0", 1, 1, nya_render::texture::color_rgba);
+            m_mat.set_texture("decal", tex);
+        }
 
         nya_render::fbo fbo;
         nya_render::screen_quad quad;
@@ -49,7 +58,7 @@ public:
         res.tex.build_texture(0, tp->get_width(), tp->get_height(), nya_render::texture::color_rgba);
         fbo.set_color_target(res.tex);
 
-        m_mat.get_pass(m_mat.add_pass(nya_scene::material::default_pass)).set_shader(nya_scene::shader("shaders/plane_camo.nsh"));
+        m_mat.get_default_pass().set_shader(nya_scene::shader("shaders/plane_camo.nsh"));
         m_mat.set_param_array(m_mat.get_param_idx("colors"), m_colors);
 
         fbo.bind();
@@ -84,11 +93,19 @@ public:
         nya_math::vec3 colors[6];
     };
 
+    struct mod_info: public color_info
+    {
+        std::string zip_name, tex_name;
+        bool override_colors[6] = { false };
+    };
+
     struct info
     {
         std::string name;
         nya_math::vec3 camera_offset;
         std::vector<color_info> colors;
+        std::vector<mod_info> color_mods;
+        std::string sound, voice;
     };
 
     info *get_info(const char *name)
@@ -98,6 +115,7 @@ public:
 
         std::string name_str(name);
         std::transform(name_str.begin(), name_str.end(), name_str.begin(), ::tolower);
+
         for (auto &i: m_infos)
         {
             if (i.name == name_str)
@@ -115,6 +133,59 @@ public:
         {
             aircraft_information info5("target/Information/AircraftInformationC05.AIN"); //ToDo
             *info.get_info("tnd4") = *info5.get_info("tnd4");
+
+            auto &su35 = *info.get_info("su35");
+            auto &su37 = *info.get_info("su37");
+            if (!su35.colors.empty() && !su37.colors.empty())
+                std::swap(su35.colors[0], su37.colors[0]);
+
+            auto custom_decals = list_files("decals/");
+            for (auto &d: custom_decals)
+            {
+                nya_resources::zip_resources_provider zprov;
+                if (!zprov.open_archive(d.c_str()))
+                    continue;
+
+                pugi::xml_document doc;
+                if (!load_xml(zprov.access("info.xml"), doc))
+                    continue;
+
+                auto root = doc.first_child();
+                auto plane_id = root.attribute("plane").as_string();
+
+                auto pi = info.get_info(plane_id);
+                if (!pi)
+                {
+                    printf("plane '%s' not found for decal mod '%s'\n", plane_id, d.c_str());
+                    continue;
+                }
+
+                mod_info m;
+                m.zip_name = d;
+                m.coledit_idx = root.attribute("base").as_int();
+
+                if (m.coledit_idx < 0 || m.coledit_idx >= pi->colors.size())
+                {
+                    printf("invalid base idx %d for decal mod '%s', base count: %d\n", m.coledit_idx, d.c_str(), (int)pi->colors.size());
+                    continue;
+                }
+
+                auto img = root.child("image");
+                if (img)
+                    m.tex_name = img.attribute("file").as_string();
+
+                for (int i = 0; i < sizeof(m.colors) / sizeof(m.colors[0]); ++i)
+                {
+                    auto c = root.child(("color" + std::to_string(i)).c_str());
+                    if (!c)
+                        continue;
+
+                    m.override_colors[i] = true;
+                    m.colors[i].set(c.attribute("r").as_int() / 255.0f, c.attribute("g").as_int() / 255.0f, c.attribute("b").as_int() / 255.0f);
+                }
+
+                pi->color_mods.push_back(m);
+            }
 
             once = false;
         }
@@ -242,6 +313,7 @@ public:
         //ToDo
 
         std::map<std::string,std::vector<int> > ints;
+        std::map<std::string, std::pair<std::string, std::string> > sounds;
 
         dpl_file dp;
         dp.open("datapack.bin");
@@ -255,15 +327,24 @@ public:
             if (strncmp(buf.c_str(), ";DPL_P_", 7) != 0)
                 continue;
 
-            if (buf[7+4] != '_' || buf[7+4+1] != 'T')
-                continue;
-
-            int idx = atoi(&buf[7+4+2]);
-
             std::string plane_name = buf.substr(7,4);
             std::transform(plane_name.begin(), plane_name.end(), plane_name.begin(), ::tolower);
 
-            ints[plane_name].push_back(idx);
+            if (buf[7+4] == '\n')
+            {
+                auto s0 = buf.find("ound/");     if (s0 == std::string::npos) continue;
+                auto e0 = buf.find('\x9', s0);    if (e0 == std::string::npos) continue;
+                auto s1 = buf.find("ound/", e0); if (s1 == std::string::npos) continue;
+                auto e1 = buf.find('\x9', s1);    if (e1 == std::string::npos) continue;
+
+                auto test = sounds[plane_name] = std::make_pair('s' + buf.substr(s0, e0 - s0), 's' + buf.substr(s1, e1 - s1));
+                test = test;
+            }
+            else if (buf[7+4] == '_' && buf[7+4+1] == 'T')
+            {
+                int idx = atoi(&buf[7+4+2]);
+                ints[plane_name].push_back(idx);
+            }
         }
 
         dp.close();
@@ -271,6 +352,10 @@ public:
         for (auto &info: m_infos)
         {
             auto &in = ints[info.name];
+
+            auto s = sounds.find(info.name);
+            if (s != sounds.end())
+                info.sound = s->second.first, info.voice = s->second.second;
 
             int last_idx = 0;
             for (size_t i = 0; i < info.colors.size(); ++i)
@@ -302,30 +387,31 @@ bool aircraft::load(const char *name, unsigned int color_idx, const location_par
 
     m_half_flaps_flag = name_str == "f22a" || name_str == "m21b" || name_str == "av8b";
 
-    std::string name_tmp_str = "p_" + name_str; //ToDo: d_
+    m_engine_lod_idx = 3; //ToDo: player ? 3 : -1;
+    if (name_str == "av8b")
+        m_engine_lod_idx = -1;
+
+    std::string name_tmp_str = "p_" + name_str; //ToDo: load d_ models
     name_str = (player ? "p_" : "d_") + name_str;
+
+    const std::string tex_pref = std::string("model_id/tdb/mech/") + (player ? "plyr/" : "airp/");
+    const std::string mesh_pref = std::string("model_id/mech/") + "plyr/"; //ToDo: + (player ? "plyr/" : "airp/");
 
     auto info = aircraft_information::get().get_info(name);
     if (!info)
         return false;
 
-    if (color_idx >= info->colors.size())
+    if (color_idx >= info->colors.size() + info->color_mods.size())
         return false;
 
-    auto &color = info->colors[color_idx];
+    const auto base_color_idx = color_idx < info->colors.size() ? color_idx : info->color_mods[color_idx - info->colors.size()].coledit_idx;
+
+    assert(base_color_idx < info->colors.size());
+    auto &color = info->colors[base_color_idx];
 
     m_camera_offset = info->camera_offset;
 
-    std::string tex_pref = std::string("model_id/tdb/mech/") + (player ? "plyr/" : "airp/");
-
     m_mesh.load(name_tmp_str.c_str(), params);
-
-    m_engine_lod_idx = -1;
-    if (m_mesh.get_lods_count() == 11) //ToDo: aircraft configs
-        m_engine_lod_idx = 3;
-
-    if (name_str == "p_su37")
-        m_engine_lod_idx = 2;
 
     if (player)
     {
@@ -346,33 +432,99 @@ bool aircraft::load(const char *name, unsigned int color_idx, const location_par
     sprintf(cfldr, "%02d", color.coledit_idx);
     std::string cfldr2 = std::string(cfldr) + (player ? "" : "_l");
 
+    const std::string mat_name = mesh_pref + name_tmp_str + "/" + name_tmp_str + "_pcol" + cfldr + ".fhm";
+    fhm_materials mat;
+    mat.load(mat_name.c_str());
+    assert(!mat.materials.empty());
+
     color_baker baker;
-    baker.set_base((tex_pref + name_str + "/" + cfldr + "/" + name_str + "_" + cfldr2 + "_col.img").c_str());
-    baker.set_colx((tex_pref + name_str + "/coledit" + cfldr + "/" + name_str + "_" + cfldr2 + "_mkx.img").c_str());
-    baker.set_coly((tex_pref + name_str + "/coledit" + cfldr + "/" + name_str + "_" + cfldr2 + "_mky.img").c_str());
+
+    if(!mat.textures.empty())
+    {
+        assert(mat.textures.size() == 2);
+
+        baker.set_base(mat.textures[0]);
+        auto &spec_tex = mat.textures[1];
+
+        m_mesh.set_texture(0, "specular", spec_tex);
+        m_mesh.set_texture(m_engine_lod_idx, "specular", spec_tex);
+
+         // made up _pcoledit name to bind data.pac.xml entry somehow
+        const std::string mat_name = mesh_pref + name_tmp_str + "/" + name_tmp_str + "_pcoledit" + cfldr + ".fhm";
+
+        fhm_materials mat;
+        mat.load(mat_name.c_str());
+        assert(mat.textures.size() == 2);
+
+        baker.set_colx(mat.textures[0]);
+        baker.set_coly(mat.textures[1]);
+    }
+    else
+    {
+        baker.set_base((tex_pref + name_str + "/" + cfldr + "/" + name_str + "_" + cfldr2 + "_col.img").c_str());
+        baker.set_colx((tex_pref + name_str + "/coledit" + cfldr + "/" + name_str + "_" + cfldr2 + "_mkx.img").c_str());
+        baker.set_coly((tex_pref + name_str + "/coledit" + cfldr + "/" + name_str + "_" + cfldr2 + "_mky.img").c_str());
+
+        std::string spec_tex = tex_pref + name_str + "/" + cfldr + "/" + name_str + "_" + cfldr2 + "_spe.img";
+        m_mesh.set_texture(0, "specular", spec_tex.c_str());
+        m_mesh.set_texture(m_engine_lod_idx, "specular", spec_tex.c_str());
+    }
 
     for (int i = 0; i < 6; ++i)
         baker.set_color(i, color.colors[i]);
+
+    if (color_idx >= info->colors.size())
+    {
+        auto &cm = info->color_mods[color_idx - info->colors.size()];
+        if (!cm.tex_name.empty())
+        {
+            nya_resources::zip_resources_provider z;
+            z.open_archive(cm.zip_name.c_str());
+            auto tr = z.access(cm.tex_name.c_str());
+            if (tr)
+            {
+                nya_scene::resource_data d(tr->get_size());
+                tr->read_all(d.get_data());
+                tr->release();
+
+                nya_scene::shared_texture stex;
+                if (nya_scene::texture::load_tga(stex, d, cm.tex_name.c_str()))
+                {
+                    nya_scene::texture tex;
+                    tex.create(stex);
+                    baker.set_decal(tex);
+                }
+
+                d.free();
+            }
+        }
+
+        for (int i = 0; i < 6; ++i)
+        {
+            if (cm.override_colors[i])
+                baker.set_color(i, cm.colors[i]);
+        }
+    }
 
     auto diff_tex = baker.bake();
     m_mesh.set_texture(0, "diffuse", diff_tex );
     m_mesh.set_texture(m_engine_lod_idx, "diffuse", diff_tex );
 
-    std::string spec_tex = tex_pref + name_str + "/" + cfldr + "/" + name_str + "_" + cfldr2 + "_spe.img";
-    m_mesh.set_texture(0, "specular", spec_tex.c_str());
-    m_mesh.set_texture(m_engine_lod_idx, "specular", spec_tex.c_str());
-
-    player = true, name_str = name_tmp_str; //ToDo d_
-
-    std::string mat_name = std::string("model_id/mech/") + (player ? "plyr/" : "airp/") + name_str + "/" + name_str + "_pcol" + cfldr + ".fhm";
-
-    m_mesh.load_material(0, 0, mat_name.c_str(), "shaders/player_plane.nsh");
-    if (player && m_engine_lod_idx >= 0)
-        m_mesh.load_material(m_engine_lod_idx, 2, mat_name.c_str(), "shaders/player_plane.nsh");
+    m_mesh.set_material(0, mat.materials[0], "shaders/player_plane.nsh");
+    if (player && m_engine_lod_idx >= 0 && mat.materials.size() > 2)
+        m_mesh.set_material(m_engine_lod_idx, mat.materials[2], "shaders/player_plane.nsh");
 
     m_mesh.set_relative_anim_time(0, 'rudl', 0.5);
     m_mesh.set_relative_anim_time(0, 'rudr', 0.5);
     m_mesh.set_relative_anim_time(0, 'rudn', 0.5);
+
+
+    m_mesh.set_relative_anim_time(0, 'vwgn', 1.0);
+    m_mesh.update(0);
+    m_wing_sw_off = get_bone_pos("clh2");
+    m_mesh.set_relative_anim_time(0, 'vwgn', 0.0);
+    m_mesh.update(0);
+    m_wing_off = get_bone_pos("clh2");
 
     //ToDo: su24 spll splr
 
@@ -421,7 +573,7 @@ bool aircraft::load(const char *name, unsigned int color_idx, const location_par
     }
 
     m_mguns.clear();
-    const int mgun_bone = m_mesh.find_bone_idx(0, "wgnn");
+    const int mgun_bone = m_mesh.get_bone_idx(0, "wgnn");
     if (mgun_bone >= 0)
     {
         mgun m;
@@ -473,6 +625,19 @@ void aircraft::load_missile(const char *name, const location_params &params)
 void aircraft::load_special(const char *name, const location_params &params)
 {
     m_special.load((std::string("w_") + name).c_str(), params);
+
+    m_mgps.clear();
+    if (strncmp(name, "gpd", 3) == 0)
+    {
+        int time_off = 0;
+        for (auto &s: m_special_mount)
+        {
+            mgun g;
+            g.bone_idx = s.bone_idx;
+            g.flash.update(nya_math::vec3(), nya_math::vec3(), (++time_off) * 100);
+            m_mgps.push_back(g);
+        }
+    }
 }
 
 //------------------------------------------------------------
@@ -496,7 +661,11 @@ void aircraft::set_dead(bool dead)
 {
     m_dead = dead;
     if (m_dead)
+    {
+        m_fire_mgun = false;
+        m_fire_mgp = false;
         m_fire_trail = fire_trail(5.0f);
+    }
 }
 
 //------------------------------------------------------------
@@ -507,7 +676,29 @@ unsigned int aircraft::get_colors_count(const char *plane_name)
     if (!info)
         return 0;
 
-    return (unsigned int)info->colors.size();
+    return (unsigned int)(info->colors.size() + info->color_mods.size());
+}
+
+//------------------------------------------------------------
+
+std::string aircraft::get_sound_name(const char *plane_name)
+{
+    auto info = aircraft_information::get().get_info(plane_name);
+    if (!info)
+        return "";
+
+    return info->sound;
+}
+
+//------------------------------------------------------------
+
+std::string aircraft::get_voice_name(const char *plane_name)
+{
+    auto info = aircraft_information::get().get_info(plane_name);
+    if (!info)
+        return "";
+
+    return info->voice;
 }
 
 //------------------------------------------------------------
@@ -536,12 +727,30 @@ nya_math::vec3 aircraft::get_mgun_pos(int idx)
 
 //------------------------------------------------------------
 
+const renderer::model &aircraft::get_missile_model()
+{
+    return m_missile;
+}
+
+//------------------------------------------------------------
+
+const renderer::model &aircraft::get_special_model()
+{
+    return m_special;
+}
+
+//------------------------------------------------------------
+
 void aircraft::set_elev(float left, float right)
 {
     const float anim_speed_k = 5.0f;
     m_mesh.set_anim_speed(0, 'elvl', (left * 0.5f + 0.5f - m_mesh.get_relative_anim_time(0, 'elvl')) * anim_speed_k);
     m_mesh.set_anim_speed(0, 'elvr', (right * 0.5f + 0.5f - m_mesh.get_relative_anim_time(0, 'elvr')) * anim_speed_k);
     m_mesh.set_anim_speed(0, 'elvn', (left * 0.5f + 0.5f - m_mesh.get_relative_anim_time(0, 'elvn')) * anim_speed_k);
+
+    m_mesh.set_anim_speed(3, 'vctl', (left * 0.5f + 0.5f - m_mesh.get_relative_anim_time(3, 'vctl')) * anim_speed_k);
+    m_mesh.set_anim_speed(3, 'vctr', (right * 0.5f + 0.5f - m_mesh.get_relative_anim_time(3, 'vctr')) * anim_speed_k);
+    m_mesh.set_anim_speed(3, 'vctn', (((left + right) * 0.5) * 0.5f + 0.5f - m_mesh.get_relative_anim_time(3, 'vctn')) * anim_speed_k);
 }
 
 //------------------------------------------------------------
@@ -565,6 +774,8 @@ void aircraft::set_rudder(float left, float right, float center)
     m_mesh.set_anim_speed(0, 'rudl', ((has_air_brake ? center : left) * 0.5 + 0.5 - m_mesh.get_relative_anim_time(0, 'rudl')) * anim_speed_k);
     m_mesh.set_anim_speed(0, 'rudr', ((has_air_brake ? center : right) * 0.5 + 0.5 - m_mesh.get_relative_anim_time(0, 'rudr')) * anim_speed_k);
     m_mesh.set_anim_speed(0, 'rudn', (center * 0.5 + 0.5 - m_mesh.get_relative_anim_time(0, 'rudn')) * anim_speed_k);
+
+    m_mesh.set_anim_speed(3, 'vcth', (center * 0.5 + 0.5 - m_mesh.get_relative_anim_time(3, 'vcth')) * anim_speed_k);
 }
 
 //------------------------------------------------------------
@@ -600,6 +811,13 @@ void aircraft::set_canard(float value)
 
 //------------------------------------------------------------
 
+nya_math::vec3 aircraft::get_wing_offset()
+{
+    return nya_math::vec3::lerp(m_wing_off, m_wing_sw_off, m_mesh.get_relative_anim_time(0, 'vwgn'));
+}
+
+//------------------------------------------------------------
+
 void aircraft::set_wing_sweep(float value)
 {
     float wing_anim_speed = 0.8f;
@@ -615,11 +833,22 @@ void aircraft::set_intake_ramp(float value)
 
 //------------------------------------------------------------
 
+void aircraft::set_thrust(float value)
+{
+    value *= 1.2;
+    if (value > 1.0f)
+        value = 2.0f - value;
+
+    m_mesh.set_anim_weight(3, 'nzln', value);
+}
+
+//------------------------------------------------------------
+
 void aircraft::set_special_bay(bool value)
 {
-    m_mesh.set_anim_speed(0, 'spwc', value > 0 ? 1.0f : -1.0f);
-    m_mesh.set_anim_speed(0, 'swcc', value > 0 ? 1.0f : -1.0f);
-    m_mesh.set_anim_speed(0, 'swc3', value > 0 ? 1.0f : -1.0f);
+    m_mesh.set_anim_speed(0, 'spwc', value ? 1.0f : -1.0f);
+    m_mesh.set_anim_speed(0, 'swcc', value ? 1.0f : -1.0f);
+    m_mesh.set_anim_speed(0, 'swc3', value ? 1.0f : -1.0f);
 }
 
 //------------------------------------------------------------
@@ -675,6 +904,9 @@ bool aircraft::is_missile_ready()
 
 bool aircraft::is_mgun_ready()
 {
+    if (m_mguns.empty())
+        return false;
+
     if (!m_mesh.has_anim(0, 'gunc'))
         return true;
 
@@ -820,6 +1052,13 @@ void aircraft::update(int dt)
         for (auto &m: m_mguns)
             m.flash.update(m_mesh.get_bone_pos(0, m.bone_idx), dir, dt);
     }
+
+    if (m_fire_mgp)
+    {
+        auto dir = get_rot().rotate(vec3(0.0f, 0.0f, 1.0f));
+        for (auto &m: m_mgps)
+            m.flash.update(m_mesh.get_bone_pos(0, m.bone_idx) + dir * 1.5f, dir, dt);
+    }
 }
 
 //------------------------------------------------------------
@@ -887,7 +1126,7 @@ void aircraft::draw_player()
     if (m_engine_lod_idx >= 0)
         draw(m_engine_lod_idx);
 
-    //draw(4); //(3 if no engine skining) landing gear
+    //draw(4); //landing gear
 }
 
 //------------------------------------------------------------
@@ -916,6 +1155,12 @@ void aircraft::draw_mgun_flash(const scene &s)
     if (m_fire_mgun)
     {
         for (auto &m: m_mguns)
+            s.get_part_renderer().draw(m.flash);
+    }
+
+    if (m_fire_mgp)
+    {
+        for (auto &m: m_mgps)
             s.get_part_renderer().draw(m.flash);
     }
 }

@@ -38,8 +38,7 @@ public:
     nya_math::quat get_rot() { return m_mesh.get_rot(); }
     nya_math::vec3 get_bone_pos(const char *name);
 
-    int get_mguns_count() const;
-    nya_math::vec3 get_mgun_pos(int idx);
+    nya_math::vec3 get_wing_offset();
 
     void set_damage(float value) { m_damage = value; }
     float get_damage() const { return m_damage; }
@@ -54,10 +53,12 @@ public:
     void set_brake(float value);
     void set_wing_sweep(float value);
     void set_intake_ramp(float value);
+    void set_thrust(float value);
     void set_special_bay(bool value);
     void set_missile_bay(bool value);
     void set_mgun_bay(bool value);
     void set_mgun_fire(bool value) { m_fire_mgun = value; }
+    void set_mgp_fire(bool value) { m_fire_mgp = value; }
 
     //weapons
     bool has_special_bay();
@@ -73,6 +74,12 @@ public:
     nya_math::vec3 get_special_mount_pos(int idx);
     nya_math::quat get_special_mount_rot(int idx);
     void set_special_visible(int idx, bool visible);
+    int get_mguns_count() const;
+    nya_math::vec3 get_mgun_pos(int idx);
+
+    //weapon models
+    const renderer::model &get_missile_model();
+    const renderer::model &get_special_model();
 
     //cockpit
     void set_time(unsigned int time) { m_time = time * 1000; } //in seconds
@@ -92,9 +99,11 @@ public:
 
     //info
     static unsigned int get_colors_count(const char *plane_name);
+    static std::string get_sound_name(const char *plane_name);
+    static std::string get_voice_name(const char *plane_name);
 
     aircraft(): m_hide(false), m_time(0), m_camera_mode(camera_mode_third), m_half_flaps_flag(false),
-                m_engine_lod_idx(0), m_dead(false), m_has_trail(false), m_fire_mgun(false)
+                m_engine_lod_idx(0), m_dead(false), m_has_trail(false)
     {
         m_adimx_bone_idx = m_adimx2_bone_idx = -1;
         m_adimz_bone_idx = m_adimz2_bone_idx = -1;
@@ -142,20 +151,27 @@ private:
     nya_math::vec3 m_camera_offset;
     camera_mode m_camera_mode;
 
+private:
     fire_trail m_fire_trail;
     bool m_dead;
 
     bool m_has_trail;
     std::pair<plane_trail, int> m_trails[2];
 
+private:
     struct mgun
     {
-        int bone_idx;
+        int bone_idx = -1;
         muzzle_flash flash;
     };
 
     std::vector<mgun> m_mguns;
-    bool m_fire_mgun;
+    std::vector<mgun> m_mgps;
+    bool m_fire_mgun = false;
+    bool m_fire_mgp = false;
+
+    nya_math::vec3 m_wing_off;
+    nya_math::vec3 m_wing_sw_off;
 };
 
 //------------------------------------------------------------

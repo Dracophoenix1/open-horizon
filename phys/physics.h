@@ -6,6 +6,8 @@
 
 #include "plane_params.h"
 #include "math/quaternion.h"
+#include "math/quadtree.h"
+#include "mesh.h"
 #include <functional>
 #include <vector>
 #include <memory>
@@ -53,12 +55,19 @@ struct plane: public object
     fvalue thrust_time;
     vec3 rot_speed;
 
+    vec3 nose_offset;
+    vec3 wing_offset;
+
     plane_controls controls;
     plane_params params;
     //col_mesh mesh;
 
     void reset_state();
     void update(int dt);
+
+    float get_speed_kmh() const;
+    float get_thrust() const;
+    bool get_ab() const;
 };
 
 typedef ptr<plane> plane_ptr;
@@ -89,8 +98,7 @@ typedef ptr<missile> missile_ptr;
 
 struct bullet
 {
-    nya_math::vec3 pos;
-    nya_math::vec3 vel;
+    vec3 pos, vel;
     int time;
 };
 
@@ -101,18 +109,18 @@ class world
 public:
     void set_location(const char *name);
 
-    plane_ptr add_plane(const char *name);
-    missile_ptr add_missile(const char *name);
+    plane_ptr add_plane(const char *name, bool add_to_world);
+    missile_ptr add_missile(const char *name, bool add_to_world);
 
-    void spawn_bullet(const char *type, const nya_math::vec3 &pos, const nya_math::vec3 &dir);
+    bool spawn_bullet(const char *type, const vec3 &pos, const vec3 &dir, vec3 &result);
 
-    void update_planes(int dt, hit_hunction on_hit);
-    void update_missiles(int dt, hit_hunction on_hit);
-    void update_bullets(int dt, hit_hunction on_hit);
+    void update_planes(int dt, const hit_hunction &on_hit);
+    void update_missiles(int dt, const hit_hunction &on_hit);
+    void update_bullets(int dt);
 
     const std::vector<bullet> &get_bullets() const { return m_bullets; }
 
-    float get_height(float x, float z) const;
+    float get_height(float x, float z, bool include_objects) const;
 
 private:
     std::vector<plane_ptr> m_planes;
@@ -122,6 +130,23 @@ private:
     const static unsigned int location_size = 16;
     unsigned char m_height_patches[location_size * location_size];
     std::vector<float> m_heights;
+
+    std::vector<mesh> m_meshes;
+
+    struct instance
+    {
+        int mesh_idx = -1;
+        vec3 pos;
+        float yaw_s, yaw_c = 0.0f;
+        nya_math::aabb bbox;
+
+    public:
+        vec3 transform(const vec3 &v) const;
+        vec3 transform_inv(const vec3 &v) const;
+    };
+
+    std::vector<instance> m_instances;
+    nya_math::quadtree m_qtree;
 };
 
 //------------------------------------------------------------

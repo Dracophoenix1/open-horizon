@@ -4,3 +4,9 @@
 [submodule "deps/glfw"]
 	path = deps/glfw
 	url = https://github.com/glfw/glfw
+[submodule "deps/miso"]
+	path = deps/miso
+	url = https://github.com/antze-k/miso
+[submodule "deps/zip"]
+	path = deps/zip
+	url = https://github.com/kuba--/zip

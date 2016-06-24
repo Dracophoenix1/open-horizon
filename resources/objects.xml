@@ -1,0 +1,198 @@
+<!--models from target/model_id/mech/-->
+
+<objects>
+    <group name="air - bombers">
+        <object id="b01b" type="bomber" model="o_b01b" y="100" dy="3"/>
+        <object id="b02a" type="bomber" model="o_b02a" y="100" dy="3"/>
+        <object id="t095" type="bomber" model="o_t095" y="100" dy="3"/>
+        <object id="t160" type="bomber" model="o_t160" y="100" dy="3"/>
+    </group>
+
+    <group name="air - attackers">
+        <object id="a10a" type="attacker" model="o_a10a" y="100" dy="2"/>
+        <object id="f02a" type="attacker" model="o_f02a" y="100" dy="2"/>
+        <object id="f17a" type="attacker" model="o_f17a" y="100" dy="2"/>
+        <object id="f35b" type="attacker" model="o_f35b" y="100" dy="2.2"/>
+        <object id="f15e" type="attacker" model="o_f15e" y="100" dy="2"/>
+        <object id="f16f" type="attacker" model="o_f16f" y="100" dy="2"/>
+        <object id="su24" type="attacker" model="o_su24" y="100" dy="2"/>
+        <object id="su25" type="attacker" model="o_su25" y="100" dy="2.1"/>
+        <object id="su34" type="attacker" model="o_su34" y="100" dy="2"/>
+        <object id="tnd4" type="attacker" model="o_tnd4" y="100" dy="2.3"/>
+    </group>
+
+    <group name="air - fighters">
+        <object id="av8b" type="fighter" model="o_av8b" y="100" dy="2"/>
+        <object id="f04e" type="fighter" model="o_f04e" y="100" dy="2"/>
+        <object id="f14d" type="fighter" model="o_f14d" y="100" dy="2"/>
+        <object id="f15c" type="fighter" model="o_f15c" y="100" dy="2.2"/>
+        <object id="f15m" type="fighter" model="o_f15m" y="100" dy="2"/>
+        <object id="f16c" type="fighter" model="o_f16c" y="100" dy="2"/>
+        <object id="f18f" type="fighter" model="o_f18f" y="100" dy="2"/>
+        <object id="f22a" type="fighter" model="o_f22a" y="100" dy="2"/>
+<!--    <object id="fa44" type="fighter" model="o_fa44" y="100" dy="2"/> -->
+        <object id="j39c" type="fighter" model="o_j39c" y="100" dy="2"/>
+<!--    <object id="kwmr" type="fighter" model="o_kwmr" y="100" dy="2"/> -->
+        <object id="m21b" type="fighter" model="o_m21b" y="100" dy="2"/>
+        <object id="m29a" type="fighter" model="o_m29a" y="100" dy="2"/>
+        <object id="m31b" type="fighter" model="o_m31b" y="100" dy="2"/>
+        <object id="mr2k" type="fighter" model="o_mr2k" y="100" dy="2"/>
+        <object id="pkfa" type="fighter" model="o_pkfa" y="100" dy="2"/>
+        <object id="rflm" type="fighter" model="o_rflm" y="100" dy="2"/>
+        <object id="su27" type="fighter" model="o_su27" y="100" dy="2"/>
+        <object id="su33" type="fighter" model="o_su33" y="100" dy="2"/>
+        <object id="su35" type="fighter" model="o_su35" y="100" dy="2"/>
+<!--    <object id="su37" type="fighter" model="o_su37" y="100" dy="2"/> -->
+        <object id="su47" type="fighter" model="o_su47" y="100" dy="2"/>
+        <object id="typn" type="fighter" model="o_typn" y="100" dy="2"/>
+    </group>
+
+    <group name="air - transport">
+        <object id="a130" type="plane" model="o_a130" y="100" dy="4"/>
+        <object id="an12" type="plane" model="o_an12" y="100" dy="5"/>
+        <object id="c130" type="plane" model="o_c130" y="100" dy="4"/>
+        <object id="civl" type="plane" model="o_civl" y="100" dy="4"/>
+        <object id="il76" type="plane" model="o_il76" y="100" dy="5.3"/>
+    </group>
+
+    <group name="air - helicopters">
+        <object id="ah64" type="heli" model="o_ah64" y="50" dy="2.1"/>
+        <object id="ka27" type="heli" model="o_ka27" y="50" dy="0"/>
+        <object id="mi24" type="heli" model="o_mi24" y="50" dy="3"/>
+        <object id="mh60" type="heli" model="o_mh60" y="50" dy="2"/>
+    </group>
+
+    <group name="air - missiles">
+        <object id="icbm" type="plane" model="o_icbm" y="100"/>
+        <object id="crsl" type="plane" model="o_crsl" y="100"/>
+        <object id="crsm" type="plane" model="o_crsm" y="100"/>
+        <object id="crsn" type="plane" model="o_crsn" y="100"/>
+        <object id="crso" type="plane" model="o_crso" y="100"/>
+        <object id="crsp" type="plane" model="o_crsp" y="100"/>
+        <object id="crsq" type="plane" model="o_crsq" y="100"/>
+    </group>
+
+    <group name="ground - arms">
+        <object id="aagn" type="turret" model="c_aagn"/>
+        <object id="goa1" type="turret" model="c_goa1"/>
+        <object id="l016" type="object" model="c_l016"/>
+        <object id="nsam" type="turret" model="c_nsam"/>
+        <object id="pto1" type="turret" model="c_pto1"/>
+        <object id="s300" type="object" model="c_s300"/>
+        <object id="s302" type="object" model="c_s302"/>
+        <object id="tel2" type="object" model="c_tel2"/>
+        <object id="zu23" type="object" model="c_zu23"/>
+    </group>
+
+    <group name="ground - mil vehicles">
+        <object id="avng" type="vehicle" model="c_avng"/>
+        <object id="bmp2" type="vehicle" model="c_bmp2"/>
+        <object id="brd2" type="vehicle" model="c_brd2"/>
+        <object id="brd3" type="vehicle" model="c_brd3"/>
+        <object id="geck" type="vehicle" model="c_geck"/>
+        <object id="kolc" type="vehicle" model="c_kolc"/>
+        <object id="m1a2" type="vehicle" model="c_m1a2"/>
+        <object id="msts" type="vehicle" model="c_msts"/>
+        <object id="pto2" type="vehicle" model="c_pto2"/>
+        <object id="rad1" type="vehicle" model="c_rad1"/>
+        <object id="s301" type="vehicle" model="c_s301"/>
+        <object id="shil" type="vehicle" model="c_shil"/>
+        <object id="smer" type="vehicle" model="c_smer"/>
+        <object id="stry" type="vehicle" model="c_stry"/>
+        <object id="t055" type="vehicle" model="c_t055"/>
+        <object id="t090" type="vehicle" model="c_t090"/>
+        <object id="tec1" type="vehicle" model="c_tec1"/>
+        <object id="tec2" type="vehicle" model="c_tec2"/>
+        <object id="tec3" type="vehicle" model="c_tec3"/>
+        <object id="tel1" type="vehicle" model="c_tel1"/>
+        <object id="tnkr" type="vehicle" model="c_tnkr" dy="1.3"/>
+        <object id="tung" type="vehicle" model="c_tung"/>
+        <object id="uaz4" type="vehicle" model="c_uaz4"/>
+        <object id="ural" type="vehicle" model="c_ural"/>
+        <object id="uram" type="vehicle" model="c_uram"/>
+        <object id="z130" type="vehicle" model="c_z130"/>
+        <object id="z131" type="vehicle" model="c_z131"/>
+        <object id="z132" type="vehicle" model="c_z132"/>
+    </group>
+
+    <group name="ground - civ vehicles">
+        <object id="mo05" type="vehicle" model="c_mo05"/>
+        <object id="mo06" type="vehicle" model="c_mo06"/>
+        <object id="mo07" type="vehicle" model="c_mo07"/>
+        <object id="mo08" type="vehicle" model="c_mo08"/>
+        <object id="mo13" type="vehicle" model="c_mo13"/>
+        <object id="mo14" type="vehicle" model="c_mo14"/>
+        <object id="mo15" type="vehicle" model="c_mo15"/>
+        <object id="mo16" type="vehicle" model="c_mo16"/>
+        <object id="mo17" type="object" model="c_mo17"/>
+        <object id="mo18" type="object" model="c_mo18"/>
+        <object id="mo19" type="object" model="c_mo19"/>
+        <object id="mo20" type="vehicle" model="c_mo20"/>
+    </group>
+
+    <group name="ground - objects">
+        <object id="box2" type="static" model="f_box2"/>
+        <object id="boxs" type="static" model="f_boxs"/>
+        <object id="camo" type="static" model="f_camo"/>
+        <object id="drum" type="static" model="f_drum"/>
+        <object id="lmb1" type="static" model="f_lmb1"/>
+        <object id="lmb2" type="static" model="f_lmb2"/>
+        <object id="lmb3" type="static" model="f_lmb3"/>
+   <!-- <object id="lmbx" type="static" model="f_lmbx"/> -->
+        <object id="tank" type="static" model="f_tank"/>
+    </group>
+
+    <group name="ground - static">
+        <object id="kc10" type="vehicle" model="c_kc10"/>
+        <object id="kc11" type="vehicle" model="c_kc11"/>
+        <object id="kc12" type="vehicle" model="c_kc12"/>
+        <object id="kc13" type="vehicle" model="c_kc13"/>
+        <object id="kc14" type="vehicle" model="c_kc14"/>
+        <object id="kc15" type="vehicle" model="c_kc15"/>
+    </group>
+
+    <group name="naval - ships">
+        <object id="aegs" type="ship" model="s_aegs"/>
+        <object id="aist" type="ship" model="s_aist"/>
+        <object id="boat" type="ship" model="s_boat"/>
+        <object id="ctsl" type="ship" model="s_ctsl"/>
+        <object id="derg" type="ship" model="s_derg"/>
+        <object id="kara" type="ship" model="s_kara"/>
+        <object id="kriv" type="ship" model="s_kriv"/>
+        <object id="krov" type="ship" model="s_krov"/>
+        <object id="kuzn" type="ship" model="s_kuzn"/>
+        <object id="mgyt" type="ship" model="s_mgyt"/>
+        <object id="mslb" type="ship" model="s_mslb"/>
+        <object id="ptrb" type="ship" model="s_ptrb"/>
+        <object id="tara" type="ship" model="s_tara"/>
+<!--
+        <object id="cts1" type="ship" model="s_cts1"/>
+        <object id="cts2" type="ship" model="s_cts2"/>
+        <object id="cts3" type="ship" model="s_cts3"/>
+ -->
+    </group>
+
+    <group name="naval - arms">
+        <object id="a130_s" type="turret" model="f_a130"/>
+        <object id="a176_s" type="turret" model="f_a176"/>
+        <object id="a630_s" type="turret" model="f_a630"/>
+        <object id="a726_s" type="turret" model="f_a726"/>
+        <object id="aagn_s" type="turret" model="f_aagn"/>
+        <object id="aegg_s" type="turret" model="f_aegg"/>
+        <object id="aegv_s" type="object" model="f_aegv"/>
+        <object id="crdr_s" type="object" model="f_crdr"/>
+        <object id="garg_s" type="object" model="f_garg"/>
+        <object id="geck_s" type="turret" model="f_geck"/>
+        <object id="gki1_s" type="object" model="f_gki1"/>
+        <object id="gki2_s" type="object" model="f_gki2"/>
+        <object id="gku1_s" type="object" model="f_gku1"/>
+        <object id="gku2_s" type="object" model="f_gku2"/>
+        <object id="gku3_s" type="object" model="f_gku3"/>
+        <object id="gku4_s" type="object" model="f_gku4"/>
+        <object id="gobl_s" type="turret" model="f_gobl"/>
+        <object id="kort_s" type="turret" model="f_kort"/>
+        <object id="sam1_s" type="turret" model="f_sam1"/>
+        <object id="su33_s" type="object" model="c_su33" dy="2.0"/>
+    </group>
+
+</objects>

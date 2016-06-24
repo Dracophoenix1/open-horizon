@@ -3,14 +3,14 @@
 //
 
 #include "dpl.h"
-#include "dpl_keys.h"
+#include "decrypt.h"
 #include "memory/tmp_buffer.h"
 #include "memory/memory_reader.h"
 #include "resources/resources.h"
 #include <assert.h>
-#include <zlib.h>
 #include <stdint.h>
 #include "util/util.h"
+#include "util/zip.h"
 
 //------------------------------------------------------------
 
@@ -29,7 +29,7 @@ bool dpl_file::open(const char *name)
     {
         char sign[4];
         uint32_t byte_order_20101010;
-        uint32_t flags;
+        uint32_t timestamp;
         uint32_t infos_count;
         uint32_t infos_size;
     } header;
@@ -42,16 +42,14 @@ bool dpl_file::open(const char *name)
     if (m_byte_order)
     {
         header.byte_order_20101010 = swap_bytes(header.byte_order_20101010);
-        header.flags = swap_bytes(header.flags);
+        header.timestamp = swap_bytes(header.timestamp);
         header.infos_count = swap_bytes(header.infos_count);
         header.infos_size = swap_bytes(header.infos_size);
     }
 
     assert(header.byte_order_20101010 == 20101010);
 
-    m_archieved = header.flags == 2011101108 || header.flags == 2011080301 || header.flags == 2013091901;
-    if (!m_archieved && header.flags != 2011082201)
-        return false;
+    m_archieved = header.timestamp != 2011082201; //ToDo?
 
     nya_memory::tmp_buffer_scoped buf(header.infos_size);
     m_data->read_chunk(buf.get_data(), buf.get_size(), sizeof(header));
@@ -82,6 +80,8 @@ bool dpl_file::open(const char *name)
 
         assert(h.check_sign());
 
+        m_infos[i].header = h;
+
         const bool byte_order = h.wrong_byte_order();
         assert(byte_order == m_byte_order);
         if (byte_order)
@@ -95,8 +95,8 @@ bool dpl_file::open(const char *name)
             std::swap(((uint32_t *)&e.offset)[0], ((uint32_t *)&e.offset)[1]);
         }
 
-        assert(h.byte_order_20101010 == 20101010);
-        assert(h.flags == header.flags);
+        assert(!h.wrong_byte_order());
+        assume(h.timestamp == header.timestamp);
         //assert(e.idx == (m_archieved ? i+10000 : i));
         assert(e.offset+e.size <= (uint64_t)m_data->get_size());
         //assert(e.arch_unknown_16 == (m_archieved ? 16 : 0));
@@ -113,7 +113,6 @@ bool dpl_file::open(const char *name)
             assert(s.idx <= h.unknown_struct_count);
         }
 
-        m_infos[i].header = h;
         m_infos[i].offset = e.offset;
         m_infos[i].size = e.size;
         m_infos[i].unpacked_size = m_archieved ? h.size + sizeof(fhm_file::fhm_header) : e.size;
@@ -146,32 +145,6 @@ uint32_t dpl_file::get_file_size(int idx) const
 
 //------------------------------------------------------------
 
-static bool unzip(const void *from, size_t from_size, void *to, size_t to_size)
-{
-    z_stream infstream;
-    infstream.zalloc = Z_NULL;
-    infstream.zfree = Z_NULL;
-    infstream.opaque = Z_NULL;
-    infstream.avail_in = (uInt)from_size;
-    infstream.next_in = (Bytef *)from;
-    infstream.avail_out = (uInt)to_size;
-    infstream.next_out = (Bytef *)to;
-
-    inflateInit2(&infstream, -MAX_WBITS);
-
-    const int result = inflate(&infstream, Z_NO_FLUSH);
-    if (result != Z_OK && result != Z_STREAM_END)
-        return false;
-
-    if (infstream.total_in != from_size || infstream.total_out != to_size)
-        return false;
-
-    inflateEnd(&infstream);
-    return true;
-}
-
-//------------------------------------------------------------
-
 bool dpl_file::read_file_data(int idx, void *data) const
 {
     if (!data || idx < 0 || idx >= (int)m_infos.size())
@@ -191,7 +164,8 @@ bool dpl_file::read_file_data(int idx, void *data) const
 
     struct block_header
     {
-        uint16_t unknown_323; //323 or 143h
+        uint8_t sign;
+        uint8_t type;
         uint16_t idx;
         uint32_t unknown;
         uint32_t unpacked_size;
@@ -201,32 +175,36 @@ bool dpl_file::read_file_data(int idx, void *data) const
     char *buf_out = (char *)data;
 
     nya_memory::memory_reader r(buf.get_data(), buf.get_size());
+    uint16_t curr_idx = 0;
     while (r.check_remained(sizeof(header)))
     {
         header = r.read<block_header>();
+        const bool archieved = header.type == 1;
+        assume(header.sign == 'C');
+        assume(archieved || header.type == 2);
+        assume(archieved || header.packed_size == header.unpacked_size);
 
         if (m_byte_order)
         {
+            header.idx = swap_bytes(header.idx);
             for (uint32_t j = 1; j < sizeof(header) / 4; ++j)
                 ((uint32_t *)&header)[j] = swap_bytes(((uint32_t *)&header)[j]);
         }
+
+        assert(header.idx == curr_idx++);
 
         uint8_t *buf_from = (uint8_t *)r.get_data();
         if (!r.check_remained(header.packed_size))
             return false;
 
-        auto keys = get_dpl_key(e.key);
-        for (size_t i = 0; i < header.packed_size; ++i)
-            buf_from[i] ^= keys[i % 8];
-
-        const bool success=unzip(buf_from, header.packed_size, buf_out, header.unpacked_size);
-        if (!success)
+        decrypt(buf_from, header.packed_size, e.key);
+        if (archieved)
         {
-            if (header.packed_size != header.unpacked_size)
+            if (!unzip(buf_from, header.packed_size, buf_out, header.unpacked_size))
                 return false;
-
-            memcpy(buf_out, buf_from, header.packed_size);
         }
+        else
+            memcpy(buf_out, buf_from, header.packed_size);
 
         buf_out += header.unpacked_size;
         r.skip(header.packed_size);
